@@ -411,3 +411,12 @@ button:disabled, input:disabled, select:disabled {
   .header-actions { justify-content: stretch; }
   .header-actions .btn { flex: 1; }
 }
+
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}

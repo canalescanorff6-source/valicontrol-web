@@ -122,5 +122,17 @@
   {% else %}
     <div class="empty">Nenhum produto encontrado.</div>
   {% endif %}
+
+  {% if page_obj and page_obj.paginator.num_pages > 1 %}
+  <div class="pagination-bar">
+    {% if page_obj.has_previous %}
+      <a class="btn btn-ghost" href="?q={{ busca|urlencode }}&status={{ filtro }}&page={{ page_obj.previous_page_number }}">Anterior</a>
+    {% endif %}
+    <span class="muted">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a class="btn btn-ghost" href="?q={{ busca|urlencode }}&status={{ filtro }}&page={{ page_obj.next_page_number }}">Próxima</a>
+    {% endif %}
+  </div>
+  {% endif %}
 </section>
 {% endblock %}

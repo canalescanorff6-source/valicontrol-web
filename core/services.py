@@ -185,12 +185,22 @@ def produtos_do_usuario(email: str):
 
 
 def estatisticas(conta: Conta) -> dict:
-    qs = produtos_do_usuario(conta.email)
-    produtos = list(qs)
-    total = len(produtos)
-    vencidos = sum(1 for p in produtos if produto_status(p.validade) == 'vencido')
-    proximos = sum(1 for p in produtos if produto_status(p.validade) == 'proximo')
-    ok = sum(1 for p in produtos if produto_status(p.validade) == 'ok')
+    # Lê só a coluna de validade em vez de carregar todos os produtos completos.
+    # Isso deixa dashboard e produtos rápidos mesmo com muitos registros.
+    qs = Produto.objects.filter(user_email=conta.email).values_list('validade', flat=True)
+    total = 0
+    vencidos = 0
+    proximos = 0
+    ok = 0
+    for validade in qs.iterator(chunk_size=1000):
+        total += 1
+        status = produto_status(validade)
+        if status == 'vencido':
+            vencidos += 1
+        elif status == 'proximo':
+            proximos += 1
+        elif status == 'ok':
+            ok += 1
     limite = limite_produtos(conta)
     uso = min(100, int((total / max(1, limite)) * 100))
     expirado = conta_trial_expirado(conta)
@@ -284,16 +294,24 @@ def _excel_signature(path: Path) -> dict:
 
 
 def catalogo_index_pronto() -> bool:
-    xlsx_path = Path(settings.DATA_EXCEL_PATH)
+    """Verificação rápida do índice do catálogo.
+
+    A versão anterior calculava SHA1 do dados.xlsx em toda consulta. No RunSite
+    isso deixava o preenchimento automático lento, porque cada código digitado
+    lia o arquivo Excel novamente. Agora a requisição web só confere se o
+    SQLite do catálogo existe e tem dados. A validação completa continua sendo
+    feita quando o comando indexar_catalogo é executado manualmente.
+    """
     db_path = _catalogo_db_path()
-    if not xlsx_path.exists() or not db_path.exists():
+    if not db_path.exists():
         return False
-    esperado = _excel_signature(xlsx_path)
     try:
         with _sqlite_connect(db_path, readonly=True) as conn:
-            rows = conn.execute('SELECT chave, valor FROM catalogo_meta').fetchall()
-            meta = dict(rows)
-            return all(meta.get(k) == v for k, v in esperado.items())
+            row = conn.execute("SELECT valor FROM catalogo_meta WHERE chave='total_produtos'").fetchone()
+            if not row or int(row[0] or 0) <= 0:
+                return False
+            conn.execute('SELECT 1 FROM catalogo_lookup LIMIT 1').fetchone()
+            return True
     except Exception:
         return False
 
@@ -490,8 +508,13 @@ class CatalogoProdutos:
         self.db_path = Path(db_path or _catalogo_db_path())
 
     def _ensure_ready(self):
+        # Não indexa automaticamente durante uma requisição web.
+        # Isso evita que o RunSite derrube o site por memória/tempo caso o
+        # arquivo data/dados.sqlite3 não tenha sido enviado ao GitHub.
         if not catalogo_index_pronto():
-            indexar_catalogo_produtos(force=True)
+            raise FileNotFoundError(
+                'Catálogo ainda não indexado. Envie data/dados.sqlite3 ou rode: python manage.py indexar_catalogo --force'
+            )
 
     def _fetchone(self, sql: str, params=()):
         self._ensure_ready()
@@ -554,7 +577,10 @@ def carregar_catalogo_produtos():
     return CatalogoProdutos()
 
 
+@lru_cache(maxsize=4096)
 def buscar_catalogo(codigo: str):
+    # Cache pequeno para deixar leituras repetidas instantâneas, sem carregar
+    # todo o catálogo na memória.
     return carregar_catalogo_produtos().get(codigo)
 
 def limpar_validade(valor) -> str:

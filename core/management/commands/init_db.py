@@ -92,6 +92,18 @@ SQLITE_SQL = [
     """,
 ]
 
+POSTGRES_INDEXES = [
+    "CREATE INDEX IF NOT EXISTS idx_produtos_user_validade ON produtos (user_email, validade)",
+    "CREATE INDEX IF NOT EXISTS idx_produtos_user_codigo ON produtos (user_email, codigo)",
+    "CREATE INDEX IF NOT EXISTS idx_produtos_user_nome ON produtos (user_email, nome)",
+]
+
+SQLITE_INDEXES = [
+    "CREATE INDEX IF NOT EXISTS idx_produtos_user_validade ON produtos (user_email, validade)",
+    "CREATE INDEX IF NOT EXISTS idx_produtos_user_codigo ON produtos (user_email, codigo)",
+    "CREATE INDEX IF NOT EXISTS idx_produtos_user_nome ON produtos (user_email, nome)",
+]
+
 POSTGRES_MIGRATIONS = {
     'users': [
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS token TEXT",
@@ -145,6 +157,8 @@ class Command(BaseCommand):
                 for comandos in POSTGRES_MIGRATIONS.values():
                     for sql in comandos:
                         cursor.execute(sql)
+                for sql in POSTGRES_INDEXES:
+                    cursor.execute(sql)
             else:
                 for sql in SQLITE_SQL:
                     cursor.execute(sql)
@@ -154,5 +168,7 @@ class Command(BaseCommand):
                     for coluna, sql in colunas.items():
                         if coluna not in existentes:
                             cursor.execute(sql)
+                for sql in SQLITE_INDEXES:
+                    cursor.execute(sql)
 
         self.stdout.write(self.style.SUCCESS('Banco ValiControl OK.'))

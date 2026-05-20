@@ -1,8 +1,10 @@
-from datetime import datetime
+from datetime import datetime, date, timedelta
 import json
 
 from django.contrib import messages
 from django.db import connection
+from django.db.models import Q
+from django.core.paginator import Paginator
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
@@ -98,12 +100,12 @@ def dashboard_view(request):
         return redirect('core:login')
 
     stats = estatisticas(conta)
+    limite_proximo = (date.today() + timedelta(days=settings.VENCIMENTO_PROXIMO_DIAS)).isoformat()
     vencimentos = []
-    for p in produtos_do_usuario(conta.email)[:300]:
+    for p in Produto.objects.filter(user_email=conta.email, validade__lte=limite_proximo).order_by('validade', 'nome')[:20]:
         status = produto_status(p.validade)
         if status in {'vencido', 'proximo'}:
-            item = montar_produto_dict(p)
-            vencimentos.append(item)
+            vencimentos.append(montar_produto_dict(p))
         if len(vencimentos) >= 10:
             break
 
@@ -164,24 +166,33 @@ def produtos_view(request):
         messages.success(request, 'Produto adicionado com sucesso.')
         return redirect('core:produtos')
 
-    busca = (request.GET.get('q') or '').strip().lower()
+    busca = (request.GET.get('q') or '').strip()
     filtro = (request.GET.get('status') or 'todos').strip().lower()
-    qs = list(produtos_do_usuario(conta.email))
 
-    produtos = []
-    for p in qs:
-        item = montar_produto_dict(p)
-        if busca and busca not in str(item['codigo']).lower() and busca not in str(item['nome']).lower():
-            continue
-        if filtro != 'todos' and filtro != item['status']:
-            continue
-        produtos.append(item)
+    qs = Produto.objects.filter(user_email=conta.email)
+    if busca:
+        qs = qs.filter(Q(codigo__icontains=busca) | Q(nome__icontains=busca))
+
+    hoje = date.today().isoformat()
+    limite_proximo = (date.today() + timedelta(days=settings.VENCIMENTO_PROXIMO_DIAS)).isoformat()
+    if filtro == 'vencido':
+        qs = qs.filter(validade__lt=hoje)
+    elif filtro == 'proximo':
+        qs = qs.filter(validade__gte=hoje, validade__lte=limite_proximo)
+    elif filtro == 'ok':
+        qs = qs.filter(validade__gt=limite_proximo)
+
+    qs = qs.order_by('validade', 'nome')
+    paginator = Paginator(qs, 50)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    produtos = [montar_produto_dict(p) for p in page_obj.object_list]
 
     stats = estatisticas(conta)
     return render(request, 'core/produtos.html', {
         'conta': conta,
         'stats': stats,
         'produtos': produtos,
+        'page_obj': page_obj,
         'busca': busca,
         'filtro': filtro,
         'tipos_qtd': ['Un', 'Cx', 'Kg', 'L', 'Pct', 'Fardo'],
