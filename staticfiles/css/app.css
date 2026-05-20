@@ -1042,3 +1042,19 @@ input[readonly].email-locked {
   .messages { left: 1rem; right: 1rem; }
   .table { min-width: 680px; }
 }
+
+/* Cadastro autorizado simplificado */
+.single-authorized-form {
+  padding: 1.05rem;
+}
+.single-authorized-form .divider-with-text {
+  margin: .9rem 0 .05rem;
+}
+.single-authorized-form .btn-primary {
+  margin-top: .2rem;
+}
+.single-authorized-form input[name="codigo_autorizacao"],
+.single-authorized-form input[name="senha"],
+.single-authorized-form input[name="confirmar"] {
+  background: rgba(2, 9, 20, 0.9);
+}
