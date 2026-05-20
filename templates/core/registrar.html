@@ -1,7 +1,7 @@
 {% extends 'core/base.html' %}
 {% block title %}Cadastro autorizado | ValiControl{% endblock %}
 {% block auth %}
-<section class="auth-screen glass-panel auth-card-authorized" data-screen="cadastro-autorizado-v4">
+<section class="auth-screen glass-panel auth-card-authorized" data-screen="cadastro-autorizado-conta-editavel-v1">
   <div class="auth-layout">
     <div class="auth-institutional-panel">
       <div class="auth-logo auth-logo-large auth-logo-static" aria-label="ValiControl">
@@ -11,19 +11,19 @@
       <p class="eyebrow">CADASTRO PROTEGIDO</p>
       <h1>Criar conta autorizada</h1>
       <p class="muted auth-lead">
-        O ValiControl usa cadastro protegido por código para manter o acesso mais seguro. O código de 6 dígitos é enviado para o administrador autorizado e só depois a conta pode ser criada.
+        O ValiControl usa cadastro protegido por código. O e-mail administrativo fica travado somente para receber o código; o usuário/e-mail da nova conta é digitado normalmente.
       </p>
 
       <div class="authorization-box">
         <span class="authorization-kicker">E-mail autorizado que recebe o código</span>
-        <strong>{{ cadastro_email_travado|default:'thiago01268230@gmail.com' }}</strong>
-        <small>O código expira automaticamente, só pode ser usado uma vez e fica vinculado ao cadastro autorizado.</small>
+        <strong>{{ email_destino_codigo|default:cadastro_email_travado|default:'thiago01268230@gmail.com' }}</strong>
+        <small>O código expira automaticamente, só pode ser usado uma vez e será vinculado ao usuário/e-mail informado no pedido.</small>
       </div>
 
       <div class="auth-steps">
-        <div><b>1</b><span>Clique em <strong>Enviar código</strong> para disparar a autorização.</span></div>
-        <div><b>2</b><span>Receba o código no e-mail administrativo travado.</span></div>
-        <div><b>3</b><span>Digite o código e finalize a criação da conta.</span></div>
+        <div><b>1</b><span>Informe o usuário/e-mail da conta que será criada.</span></div>
+        <div><b>2</b><span>Envie o código para o e-mail administrativo travado.</span></div>
+        <div><b>3</b><span>Digite o código recebido, crie a senha e finalize.</span></div>
       </div>
     </div>
 
@@ -35,9 +35,13 @@
         <input type="hidden" name="acao" value="solicitar_codigo">
         <label>
           <span>E-mail autorizado para receber o código</span>
-          <input type="hidden" name="email" value="{{ cadastro_email_travado|default:'thiago01268230@gmail.com' }}">
-          <input type="email" class="email-locked" value="{{ cadastro_email_travado|default:'thiago01268230@gmail.com' }}" autocomplete="username" readonly aria-readonly="true">
-          <small>Este e-mail foi definido pelo administrador e fica bloqueado na tela.</small>
+          <input type="email" class="email-locked" value="{{ email_destino_codigo|default:cadastro_email_travado|default:'thiago01268230@gmail.com' }}" readonly aria-readonly="true" tabindex="-1">
+          <small>Este e-mail fica bloqueado e é o único destino do código.</small>
+        </label>
+        <label>
+          <span>Usuário ou e-mail da conta</span>
+          <input type="text" name="email" class="emailAuto" value="{{ email_informado|default:'' }}" placeholder="ex: joao" autocomplete="username" required>
+          <small>Se digitar só o nome, o sistema adiciona @validade.app automaticamente.</small>
         </label>
         <button class="btn btn-ghost w-full" type="submit">Enviar código para o administrador</button>
         {% if cadastro_whatsapp_link %}
@@ -51,15 +55,14 @@
         {% csrf_token %}
         <input type="hidden" name="acao" value="criar_conta">
         <label>
-          <span>E-mail autorizado</span>
-          <input type="hidden" name="email" value="{{ cadastro_email_travado|default:'thiago01268230@gmail.com' }}">
-          <input type="email" class="email-locked" value="{{ cadastro_email_travado|default:'thiago01268230@gmail.com' }}" autocomplete="username" readonly aria-readonly="true">
-          <small>A nova conta será vinculada a este e-mail autorizado.</small>
+          <span>Usuário ou e-mail da conta</span>
+          <input type="text" name="email" class="emailAuto" value="{{ email_informado|default:'' }}" placeholder="ex: joao" autocomplete="username" required>
+          <small>Use o mesmo usuário/e-mail usado para solicitar o código.</small>
         </label>
         <label>
           <span>Código de autorização</span>
           <input class="authorization-code-input" type="text" name="codigo_autorizacao" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000" autocomplete="one-time-code" required>
-          <small>Digite os 6 números recebidos em {{ cadastro_email_travado|default:'o e-mail autorizado' }}.</small>
+          <small>Digite os 6 números recebidos em {{ email_destino_codigo|default:cadastro_email_travado|default:'o e-mail autorizado' }}.</small>
         </label>
         <label>
           <span>Senha</span>

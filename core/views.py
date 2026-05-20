@@ -66,10 +66,18 @@ def login_view(request):
     return render(request, 'core/login.html')
 
 
-def _email_cadastro_travado() -> str:
-    valor = getattr(settings, 'CADASTRO_EMAIL_TRAVADO', '') or 'thiago01268230@gmail.com'
-    # Se houver mais de um e-mail separado por vírgula, ponto e vírgula ou espaço,
-    # a tela usa o primeiro como conta autorizada travada.
+def _email_destino_codigo() -> str:
+    """E-mail administrativo que recebe o código.
+
+    Esse e-mail fica travado na tela apenas como DESTINO do código.
+    A conta que será criada continua sendo digitada pelo usuário.
+    """
+    valor = (
+        getattr(settings, 'CADASTRO_EMAIL_TRAVADO', '')
+        or getattr(settings, 'CADASTRO_DESTINATARIO_CODIGO', '')
+        or getattr(settings, 'CADASTRO_AUTORIZACAO_EMAIL', '')
+        or 'thiago01268230@gmail.com'
+    )
     for parte in str(valor).replace(';', ',').replace(' ', ',').split(','):
         parte = parte.strip()
         if parte:
@@ -81,35 +89,40 @@ def registrar_view(request):
     if request.session.get('email'):
         return redirect('core:dashboard')
 
-    email_travado = _email_cadastro_travado()
+    email_destino_codigo = _email_destino_codigo()
+    email_informado = ''
     context = {
         'cadastro_autorizacao_obrigatoria': True,
-        'cadastro_autorizacao_email': email_travado,
-        'cadastro_email_travado': email_travado,
-        'cadastro_whatsapp_link': whatsapp_authorization_link(email_travado),
-        'codigo_solicitado_para': email_travado,
+        'cadastro_autorizacao_email': email_destino_codigo,
+        'cadastro_email_travado': email_destino_codigo,
+        'email_destino_codigo': email_destino_codigo,
+        'email_informado': email_informado,
+        'cadastro_whatsapp_link': whatsapp_authorization_link(email_informado),
+        'codigo_solicitado_para': email_informado,
     }
 
     if request.method == 'POST':
         acao = request.POST.get('acao', 'criar_conta')
-        # Cadastro travado: ignora qualquer valor enviado pelo navegador e usa sempre
-        # o e-mail autorizado configurado no RunSite.
-        email = email_travado
+        # Agora somente o e-mail que RECEBE o código fica travado.
+        # O e-mail da CONTA continua editável e é o valor usado para validar o código.
+        email = request.POST.get('email', '')
         senha = request.POST.get('senha', '')
         confirmar = request.POST.get('confirmar', '')
         codigo = request.POST.get('codigo_autorizacao', '')
-        context['codigo_solicitado_para'] = email_travado
-        context['cadastro_whatsapp_link'] = whatsapp_authorization_link(email_travado)
+        context['email_informado'] = email
+        context['codigo_solicitado_para'] = email
+        context['cadastro_whatsapp_link'] = whatsapp_authorization_link(email)
 
         if acao == 'solicitar_codigo':
-            resultado, erro = solicitar_codigo_autorizacao(email_travado, get_client_ip(request))
+            resultado, erro = solicitar_codigo_autorizacao(email, get_client_ip(request))
             if erro:
                 messages.error(request, erro)
             else:
-                context['codigo_solicitado_para'] = email_travado
+                context['codigo_solicitado_para'] = resultado.get('email') or email
+                context['email_informado'] = resultado.get('email') or email
                 context['cadastro_whatsapp_link'] = resultado.get('whatsapp_link') or context['cadastro_whatsapp_link']
-                messages.success(request, 'Código enviado para o e-mail autorizado: %s.' % email_travado)
-                messages.info(request, 'Use o código recebido nesse e-mail para finalizar o cadastro.')
+                messages.success(request, 'Código enviado para o administrador autorizado: %s.' % email_destino_codigo)
+                messages.info(request, 'Depois de receber o código, use o mesmo usuário/e-mail informado para finalizar o cadastro.')
             return _render_registrar_no_cache(request, context)
 
         if senha != confirmar:
@@ -130,7 +143,6 @@ def registrar_view(request):
                     return redirect('core:dashboard')
 
     return _render_registrar_no_cache(request, context)
-
 
 def _render_registrar_no_cache(request, context):
     response = render(request, 'core/registrar.html', context)
