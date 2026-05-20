@@ -1,5 +1,7 @@
 import csv
 import hashlib
+import logging
+import unicodedata
 import hmac
 import uuid
 from datetime import datetime, timedelta, date
@@ -13,6 +15,8 @@ from django.contrib.auth.hashers import make_password, check_password, identify_
 from openpyxl import load_workbook, Workbook
 
 from .models import Conta, Produto
+
+logger = logging.getLogger(__name__)
 
 
 def hash_senha_antiga(senha: str) -> str:
@@ -208,54 +212,110 @@ def pode_adicionar_produto(conta: Conta):
     return True, None
 
 
+def _normalizar_texto_catalogo(valor) -> str:
+    texto = str(valor or '').strip().lower()
+    texto = unicodedata.normalize('NFKD', texto).encode('ascii', 'ignore').decode('ascii')
+    texto = texto.replace('_', ' ').replace('-', ' ')
+    return ' '.join(texto.split())
+
+
+def _normalizar_codigo_catalogo(valor) -> str:
+    if valor is None:
+        return ''
+    if isinstance(valor, float) and valor.is_integer():
+        return str(int(valor))
+    texto = str(valor).strip().replace('\u00a0', '')
+    if texto.endswith('.0') and texto[:-2].isdigit():
+        texto = texto[:-2]
+    return texto.strip()
+
+
 @lru_cache(maxsize=1)
 def carregar_catalogo_produtos():
-    """Lê dados.xlsx uma vez e cria busca por código e GTIN."""
+    """Lê data/dados.xlsx uma vez e cria busca por código interno e GTIN.
+
+    Alguns relatórios XLSX exportados pelo sistema antigo vêm com a dimensão da
+    planilha marcada como A1:A1. Sem reset_dimensions(), o openpyxl enxerga só a
+    coluna A e a base carrega com 0 produtos.
+    """
     path = settings.DATA_EXCEL_PATH
     if not path.exists():
         return {}
 
     catalogo = {}
     try:
-        wb = load_workbook(path, read_only=True, data_only=True)
+        # Não usar read_only=True aqui: este XLSX vem com dimensão interna incorreta
+        # em modo streaming e o openpyxl lê apenas a coluna A.
+        wb = load_workbook(path, read_only=False, data_only=True)
         ws = wb.active
-        header_row = 39  # pandas header=38 no app desktop
-        headers = [str(c.value).strip() if c.value is not None else '' for c in ws[header_row]]
 
-        def col_idx(nome):
-            try:
-                return headers.index(nome)
-            except ValueError:
-                return None
+        # Corrige planilhas exportadas com dimensão incorreta.
+        try:
+            ws.reset_dimensions()
+        except Exception:
+            pass
 
-        idx_produto = col_idx('Produto')
-        idx_descricao = col_idx('Descrição')
-        idx_gtin = col_idx('GTIN Principal')
+        header_row = None
+        headers = []
 
-        if idx_produto is None or idx_descricao is None:
+        # Procura automaticamente a linha do cabeçalho. No relatório original
+        # costuma ser a linha 39, mas isso deixa o leitor mais seguro.
+        for row_number, row in enumerate(ws.iter_rows(min_row=1, max_row=120, values_only=True), start=1):
+            normalizados = [_normalizar_texto_catalogo(c) for c in row]
+            if 'produto' in normalizados and ('descricao' in normalizados or 'nome' in normalizados):
+                header_row = row_number
+                headers = normalizados
+                break
+
+        if header_row is None:
+            return {}
+
+        def col_idx(*nomes):
+            alvos = [_normalizar_texto_catalogo(nome) for nome in nomes]
+            for alvo in alvos:
+                if alvo in headers:
+                    return headers.index(alvo)
+            return None
+
+        idx_produto = col_idx('Produto', 'Código', 'Codigo', 'Código interno', 'Codigo interno')
+        idx_descricao = col_idx('Descrição', 'Descricao', 'Nome', 'Nome do produto', 'Produto descrição')
+        idx_gtin = col_idx('GTIN Principal', 'GTIN', 'EAN', 'Código de barras', 'Codigo de barras')
+
+        if idx_descricao is None or (idx_produto is None and idx_gtin is None):
             return {}
 
         for row in ws.iter_rows(min_row=header_row + 1, values_only=True):
             codigo = row[idx_produto] if idx_produto is not None and idx_produto < len(row) else None
             nome = row[idx_descricao] if idx_descricao is not None and idx_descricao < len(row) else None
             gtin = row[idx_gtin] if idx_gtin is not None and idx_gtin < len(row) else None
-            if not codigo or not nome:
+
+            nome_s = str(nome or '').strip()
+            codigo_s = _normalizar_codigo_catalogo(codigo)
+            gtin_s = _normalizar_codigo_catalogo(gtin)
+
+            if not nome_s or (not codigo_s and not gtin_s):
                 continue
 
-            codigo_s = str(codigo).replace('.0', '').strip()
-            gtin_s = str(gtin).replace('.0', '').strip() if gtin else ''
-            info = {'codigo': codigo_s, 'nome': str(nome).strip(), 'gtin': gtin_s}
-            catalogo[codigo_s] = info
+            info = {'codigo': codigo_s or gtin_s, 'nome': nome_s, 'gtin': gtin_s}
+
+            if codigo_s and codigo_s.lower() != 'none':
+                catalogo[codigo_s] = info
             if gtin_s and gtin_s.lower() != 'none':
                 catalogo[gtin_s] = info
-    except Exception:
+
+        try:
+            wb.close()
+        except Exception:
+            pass
+    except Exception as exc:
+        logger.exception('Falha ao carregar catálogo de produtos em %s: %s', path, exc)
         return {}
 
     return catalogo
 
 
 def buscar_catalogo(codigo: str):
-    codigo = (codigo or '').replace('.0', '').strip()
+    codigo = _normalizar_codigo_catalogo(codigo)
     if not codigo:
         return None
     return carregar_catalogo_produtos().get(codigo)
