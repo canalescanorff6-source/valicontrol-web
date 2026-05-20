@@ -10,7 +10,8 @@ Versão web do ValiControl para rodar no RunSite, substituindo o executável por
 - Filtro por vencidos, próximos e OK.
 - Busca por produto/código.
 - Preenchimento automático por código/GTIN usando `data/dados.xlsx`.
-- Importação XLSX/CSV de produtos.
+- Índice leve `data/dados.sqlite3` já gerado para não estourar memória no RunSite.
+- Importação XLSX/CSV de estoque com validade e quantidade.
 - Exportação XLSX/CSV.
 - Plano Trial e bloqueio de limite.
 - Upgrade PRO com PIX via Asaas.
@@ -32,14 +33,16 @@ Start Command:
 bash runsite_start.sh
 ```
 
+Porta: deixe automático/em branco. O start usa `$PORT`.
+
 ## Variáveis obrigatórias
 
 ```env
 SECRET_KEY=gere_uma_chave_segura
-DATABASE_URL=sua_url_postgresql
+DATABASE_URL=sua_url_postgresql_ou_neon
 ASAAS_API_KEY=sua_chave_asaas
-ALLOWED_HOSTS=seu-app.runsite.app,.runsite.app,localhost,127.0.0.1
-CSRF_TRUSTED_ORIGINS=https://seu-app.runsite.app,https://*.runsite.app
+ALLOWED_HOSTS=valicontrol-web.runsite.app,.runsite.app,localhost,127.0.0.1
+CSRF_TRUSTED_ORIGINS=https://valicontrol-web.runsite.app,https://*.runsite.app
 DEBUG=False
 RUNSITE=True
 ```
@@ -49,7 +52,7 @@ RUNSITE=True
 Configure no Asaas:
 
 ```text
-https://seu-app.runsite.app/webhook/asaas/
+https://valicontrol-web.runsite.app/webhook/asaas/
 ```
 
 Eventos importantes:
@@ -63,6 +66,8 @@ PAYMENT_CONFIRMED
 
 ```bash
 python manage.py diagnosticar_runsite
+python manage.py indexar_catalogo --skip-if-ready
+python manage.py shell -c "from core.services import carregar_catalogo_produtos; c=carregar_catalogo_produtos(); print(len(c)); print(c.get('7898082113571'))"
 ```
 
 ## Ativar conta manualmente

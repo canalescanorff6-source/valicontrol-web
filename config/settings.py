@@ -86,8 +86,10 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'False').lower() in {'1', 'true', 'yes', 'on'}
 CSRF_COOKIE_SECURE = os.getenv('CSRF_COOKIE_SECURE', 'False').lower() in {'1', 'true', 'yes', 'on'}
 SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False').lower() in {'1', 'true', 'yes', 'on'}
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 ASAAS_API_KEY = os.getenv('ASAAS_API_KEY', '').strip()
+ASAAS_BASE_URL = os.getenv('ASAAS_BASE_URL', 'https://api.asaas.com/v3').strip().rstrip('/')
 APP_NAME = os.getenv('APP_NAME', 'ValiControl Web')
 TRIAL_DIAS = int(os.getenv('TRIAL_DIAS', '15'))
 TRIAL_LIMITE_PRODUTOS = int(os.getenv('TRIAL_LIMITE_PRODUTOS', '50'))
@@ -98,3 +100,4 @@ PIX_VALOR = float(os.getenv('PIX_VALOR', '10.00'))
 PAGAMENTO_DESCRICAO = os.getenv('PAGAMENTO_DESCRICAO', 'Plano ValiControl PRO')
 ASAAS_WEBHOOK_TOKEN = os.getenv('ASAAS_WEBHOOK_TOKEN', '').strip()
 DATA_EXCEL_PATH = BASE_DIR / 'data' / 'dados.xlsx'
+DATA_SQLITE_PATH = Path(os.getenv('DATA_SQLITE_PATH', BASE_DIR / 'data' / 'dados.sqlite3'))

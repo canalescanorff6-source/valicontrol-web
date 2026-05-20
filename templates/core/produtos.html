@@ -61,14 +61,14 @@
 <section class="glass-panel card-section">
   <div class="section-title">
     <div>
-      <h2>Importar planilha</h2>
-      <p class="muted">Aceita XLSX ou CSV com colunas: código, nome, validade, quantidade e tipo.</p>
+      <h2>Importar estoque</h2>
+      <p class="muted">A base de códigos já está no sistema. Use esta opção só para carregar produtos com validade e quantidade.</p>
     </div>
   </div>
   <form method="post" action="{% url 'core:importar_produtos' %}" enctype="multipart/form-data" class="import-form">
     {% csrf_token %}
     <input type="file" name="arquivo" accept=".xlsx,.csv" required {% if stats.bloqueado %}disabled{% endif %}>
-    <button class="btn btn-ghost" type="submit" {% if stats.bloqueado %}disabled{% endif %}>Importar</button>
+    <button class="btn btn-ghost" type="submit" {% if stats.bloqueado %}disabled{% endif %}>Importar estoque</button>
   </form>
 </section>
 

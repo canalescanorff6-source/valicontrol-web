@@ -3,7 +3,14 @@ import hashlib
 import logging
 import unicodedata
 import hmac
+import os
+import re
+import sqlite3
+import tempfile
 import uuid
+from pathlib import Path
+from zipfile import ZipFile
+from xml.etree.ElementTree import iterparse
 from datetime import datetime, timedelta, date
 from functools import lru_cache
 from io import BytesIO, StringIO
@@ -212,6 +219,7 @@ def pode_adicionar_produto(conta: Conta):
     return True, None
 
 
+
 def _normalizar_texto_catalogo(valor) -> str:
     texto = str(valor or '').strip().lower()
     texto = unicodedata.normalize('NFKD', texto).encode('ascii', 'ignore').decode('ascii')
@@ -222,72 +230,225 @@ def _normalizar_texto_catalogo(valor) -> str:
 def _normalizar_codigo_catalogo(valor) -> str:
     if valor is None:
         return ''
+    if isinstance(valor, int):
+        return str(valor)
     if isinstance(valor, float) and valor.is_integer():
         return str(int(valor))
-    texto = str(valor).strip().replace('\u00a0', '')
+    texto = str(valor).strip().replace('\u00a0', '').replace(' ', '')
     if texto.endswith('.0') and texto[:-2].isdigit():
         texto = texto[:-2]
     return texto.strip()
 
 
-@lru_cache(maxsize=1)
-def carregar_catalogo_produtos():
-    """Lê data/dados.xlsx uma vez e cria busca por código interno e GTIN.
+CATALOGO_INDEX_VERSION = 'sqlite-stream-v5'
+_XLSX_NS = '{http://schemas.openxmlformats.org/spreadsheetml/2006/main}'
+_CELL_REF_RE = re.compile(r'([A-Z]+)')
 
-    Alguns relatórios XLSX exportados pelo sistema antigo vêm com a dimensão da
-    planilha marcada como A1:A1. Sem reset_dimensions(), o openpyxl enxerga só a
-    coluna A e a base carrega com 0 produtos.
-    """
-    path = settings.DATA_EXCEL_PATH
-    if not path.exists():
-        return {}
 
-    catalogo = {}
+def _catalogo_db_path() -> Path:
+    configured = getattr(settings, 'DATA_SQLITE_PATH', None)
+    if configured:
+        path = Path(configured)
+    else:
+        path = Path(settings.DATA_EXCEL_PATH).with_suffix('.sqlite3')
+
     try:
-        # Não usar read_only=True aqui: este XLSX vem com dimensão interna incorreta
-        # em modo streaming e o openpyxl lê apenas a coluna A.
-        wb = load_workbook(path, read_only=False, data_only=True)
-        ws = wb.active
+        path.parent.mkdir(parents=True, exist_ok=True)
+        return path
+    except Exception:
+        nome = 'valicontrol_catalogo_' + hashlib.sha1(str(settings.DATA_EXCEL_PATH).encode('utf-8')).hexdigest()[:12] + '.sqlite3'
+        return Path(tempfile.gettempdir()) / nome
 
-        # Corrige planilhas exportadas com dimensão incorreta.
+
+def _sqlite_connect(path: Path, readonly: bool = False):
+    if readonly:
+        return sqlite3.connect(f'file:{path}?mode=ro', uri=True)
+    return sqlite3.connect(path)
+
+
+def _arquivo_sha1(path: Path) -> str:
+    digest = hashlib.sha1()
+    with path.open('rb') as fp:
+        for chunk in iter(lambda: fp.read(1024 * 1024), b''):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _excel_signature(path: Path) -> dict:
+    stat = path.stat()
+    return {
+        'version': CATALOGO_INDEX_VERSION,
+        'xlsx_size': str(stat.st_size),
+        'xlsx_sha1': _arquivo_sha1(path),
+    }
+
+
+def catalogo_index_pronto() -> bool:
+    xlsx_path = Path(settings.DATA_EXCEL_PATH)
+    db_path = _catalogo_db_path()
+    if not xlsx_path.exists() or not db_path.exists():
+        return False
+    esperado = _excel_signature(xlsx_path)
+    try:
+        with _sqlite_connect(db_path, readonly=True) as conn:
+            rows = conn.execute('SELECT chave, valor FROM catalogo_meta').fetchall()
+            meta = dict(rows)
+            return all(meta.get(k) == v for k, v in esperado.items())
+    except Exception:
+        return False
+
+
+def _xlsx_shared_strings(zf: ZipFile) -> list[str]:
+    if 'xl/sharedStrings.xml' not in zf.namelist():
+        return []
+    strings = []
+    with zf.open('xl/sharedStrings.xml') as fp:
+        for event, elem in iterparse(fp, events=('end',)):
+            if elem.tag == _XLSX_NS + 'si':
+                strings.append(''.join((node.text or '') for node in elem.iter(_XLSX_NS + 't')))
+                elem.clear()
+    return strings
+
+
+def _xlsx_first_sheet_path(zf: ZipFile) -> str:
+    names = zf.namelist()
+    if 'xl/worksheets/sheet1.xml' in names:
+        return 'xl/worksheets/sheet1.xml'
+    for name in names:
+        if name.startswith('xl/worksheets/') and name.endswith('.xml'):
+            return name
+    raise FileNotFoundError('Nenhuma planilha encontrada dentro do XLSX.')
+
+
+def _cell_col_index(cell_ref: str, fallback: int) -> int:
+    match = _CELL_REF_RE.match(cell_ref or '')
+    if not match:
+        return fallback
+    total = 0
+    for ch in match.group(1):
+        total = total * 26 + (ord(ch) - ord('A') + 1)
+    return total - 1
+
+
+def _xlsx_cell_value(cell, shared_strings: list[str]) -> str:
+    tipo = cell.attrib.get('t')
+    if tipo == 'inlineStr':
+        inline = cell.find(_XLSX_NS + 'is')
+        if inline is None:
+            return ''
+        return ''.join((node.text or '') for node in inline.iter(_XLSX_NS + 't'))
+
+    value = cell.find(_XLSX_NS + 'v')
+    if value is None or value.text is None:
+        return ''
+    raw = value.text
+    if tipo == 's':
         try:
-            ws.reset_dimensions()
+            return shared_strings[int(raw)]
         except Exception:
-            pass
+            return ''
+    return raw
 
-        header_row = None
-        headers = []
 
-        # Procura automaticamente a linha do cabeçalho. No relatório original
-        # costuma ser a linha 39, mas isso deixa o leitor mais seguro.
-        for row_number, row in enumerate(ws.iter_rows(min_row=1, max_row=120, values_only=True), start=1):
-            normalizados = [_normalizar_texto_catalogo(c) for c in row]
-            if 'produto' in normalizados and ('descricao' in normalizados or 'nome' in normalizados):
-                header_row = row_number
-                headers = normalizados
-                break
+def _iter_xlsx_rows(path: Path):
+    """Lê o XLSX por XML, sem carregar o arquivo inteiro na memória.
 
-        if header_row is None:
-            return {}
+    A planilha do sistema antigo declara a dimensão como A1, por isso o modo
+    streaming do openpyxl ignora as demais colunas. A leitura direta do XML
+    evita esse problema e é leve o suficiente para o RunSite.
+    """
+    with ZipFile(path) as zf:
+        shared_strings = _xlsx_shared_strings(zf)
+        sheet_path = _xlsx_first_sheet_path(zf)
+        with zf.open(sheet_path) as fp:
+            for event, row in iterparse(fp, events=('end',)):
+                if row.tag != _XLSX_NS + 'row':
+                    continue
+                values_by_col = {}
+                max_col = -1
+                fallback_col = 0
+                for cell in row.findall(_XLSX_NS + 'c'):
+                    col_idx = _cell_col_index(cell.attrib.get('r', ''), fallback_col)
+                    fallback_col = col_idx + 1
+                    values_by_col[col_idx] = _xlsx_cell_value(cell, shared_strings)
+                    max_col = max(max_col, col_idx)
+                yield [values_by_col.get(i, '') for i in range(max_col + 1)] if max_col >= 0 else []
+                row.clear()
 
-        def col_idx(*nomes):
-            alvos = [_normalizar_texto_catalogo(nome) for nome in nomes]
-            for alvo in alvos:
-                if alvo in headers:
-                    return headers.index(alvo)
-            return None
 
-        idx_produto = col_idx('Produto', 'Código', 'Codigo', 'Código interno', 'Codigo interno')
-        idx_descricao = col_idx('Descrição', 'Descricao', 'Nome', 'Nome do produto', 'Produto descrição')
-        idx_gtin = col_idx('GTIN Principal', 'GTIN', 'EAN', 'Código de barras', 'Codigo de barras')
+def _encontrar_coluna(headers: list[str], *nomes: str):
+    alvos = [_normalizar_texto_catalogo(nome) for nome in nomes]
+    for alvo in alvos:
+        if alvo in headers:
+            return headers.index(alvo)
+    return None
 
-        if idx_descricao is None or (idx_produto is None and idx_gtin is None):
-            return {}
 
-        for row in ws.iter_rows(min_row=header_row + 1, values_only=True):
-            codigo = row[idx_produto] if idx_produto is not None and idx_produto < len(row) else None
-            nome = row[idx_descricao] if idx_descricao is not None and idx_descricao < len(row) else None
-            gtin = row[idx_gtin] if idx_gtin is not None and idx_gtin < len(row) else None
+def indexar_catalogo_produtos(force: bool = False) -> int:
+    """Cria um índice SQLite leve para consulta por código/GTIN.
+
+    Retorna a quantidade de produtos indexados. Não apaga nem altera os produtos
+    cadastrados pelos usuários; o banco gerado é apenas um cache da base
+    data/dados.xlsx.
+    """
+    xlsx_path = Path(settings.DATA_EXCEL_PATH)
+    if not xlsx_path.exists():
+        logger.warning('Catálogo XLSX não encontrado: %s', xlsx_path)
+        return 0
+
+    db_path = _catalogo_db_path()
+    if not force and catalogo_index_pronto():
+        return CatalogoProdutos(db_path).total_produtos()
+
+    temp_path = db_path.with_suffix('.tmp.sqlite3')
+    try:
+        if temp_path.exists():
+            temp_path.unlink()
+    except Exception:
+        pass
+
+    total = 0
+    header_encontrado = False
+    idx_produto = idx_descricao = idx_gtin = None
+    produtos_batch = []
+    lookup_batch = []
+
+    conn = _sqlite_connect(temp_path)
+    try:
+        conn.execute('PRAGMA journal_mode=OFF')
+        conn.execute('PRAGMA synchronous=OFF')
+        conn.execute('PRAGMA temp_store=MEMORY')
+        conn.execute('CREATE TABLE catalogo_meta (chave TEXT PRIMARY KEY, valor TEXT)')
+        conn.execute('CREATE TABLE catalogo_produtos (id INTEGER PRIMARY KEY, codigo TEXT, nome TEXT NOT NULL, gtin TEXT)')
+        conn.execute('CREATE TABLE catalogo_lookup (chave TEXT PRIMARY KEY, produto_id INTEGER NOT NULL)')
+
+        def flush():
+            if produtos_batch:
+                conn.executemany(
+                    'INSERT INTO catalogo_produtos (id, codigo, nome, gtin) VALUES (?, ?, ?, ?)',
+                    produtos_batch,
+                )
+                produtos_batch.clear()
+            if lookup_batch:
+                conn.executemany(
+                    'INSERT OR REPLACE INTO catalogo_lookup (chave, produto_id) VALUES (?, ?)',
+                    lookup_batch,
+                )
+                lookup_batch.clear()
+
+        for row in _iter_xlsx_rows(xlsx_path):
+            if not header_encontrado:
+                normalizados = [_normalizar_texto_catalogo(c) for c in row]
+                if 'produto' in normalizados and ('descricao' in normalizados or 'nome' in normalizados):
+                    idx_produto = _encontrar_coluna(normalizados, 'Produto', 'Código', 'Codigo', 'Código interno', 'Codigo interno')
+                    idx_descricao = _encontrar_coluna(normalizados, 'Descrição', 'Descricao', 'Nome', 'Nome do produto', 'Produto descrição')
+                    idx_gtin = _encontrar_coluna(normalizados, 'GTIN Principal', 'GTIN', 'EAN', 'Código de barras', 'Codigo de barras')
+                    header_encontrado = idx_descricao is not None and (idx_produto is not None or idx_gtin is not None)
+                continue
+
+            codigo = row[idx_produto] if idx_produto is not None and idx_produto < len(row) else ''
+            nome = row[idx_descricao] if idx_descricao is not None and idx_descricao < len(row) else ''
+            gtin = row[idx_gtin] if idx_gtin is not None and idx_gtin < len(row) else ''
 
             nome_s = str(nome or '').strip()
             codigo_s = _normalizar_codigo_catalogo(codigo)
@@ -296,30 +457,105 @@ def carregar_catalogo_produtos():
             if not nome_s or (not codigo_s and not gtin_s):
                 continue
 
-            info = {'codigo': codigo_s or gtin_s, 'nome': nome_s, 'gtin': gtin_s}
-
+            total += 1
+            produtos_batch.append((total, codigo_s or gtin_s, nome_s, gtin_s))
             if codigo_s and codigo_s.lower() != 'none':
-                catalogo[codigo_s] = info
+                lookup_batch.append((codigo_s, total))
             if gtin_s and gtin_s.lower() != 'none':
-                catalogo[gtin_s] = info
+                lookup_batch.append((gtin_s, total))
 
+            if total % 2000 == 0:
+                flush()
+
+        flush()
+        for chave, valor in _excel_signature(xlsx_path).items():
+            conn.execute('INSERT INTO catalogo_meta (chave, valor) VALUES (?, ?)', (chave, valor))
+        conn.execute('INSERT INTO catalogo_meta (chave, valor) VALUES (?, ?)', ('total_produtos', str(total)))
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        logger.exception('Falha ao indexar catálogo de produtos em %s', xlsx_path)
+        raise
+    finally:
+        conn.close()
+
+    os.replace(temp_path, db_path)
+    return total
+
+
+class CatalogoProdutos:
+    """Objeto parecido com dict, mas consultado em SQLite para não estourar memória."""
+
+    def __init__(self, db_path: Path | None = None):
+        self.db_path = Path(db_path or _catalogo_db_path())
+
+    def _ensure_ready(self):
+        if not catalogo_index_pronto():
+            indexar_catalogo_produtos(force=True)
+
+    def _fetchone(self, sql: str, params=()):
+        self._ensure_ready()
+        with _sqlite_connect(self.db_path, readonly=True) as conn:
+            conn.row_factory = sqlite3.Row
+            return conn.execute(sql, params).fetchone()
+
+    def total_produtos(self) -> int:
         try:
-            wb.close()
+            row = self._fetchone("SELECT valor FROM catalogo_meta WHERE chave='total_produtos'")
+            return int(row['valor']) if row else 0
         except Exception:
-            pass
-    except Exception as exc:
-        logger.exception('Falha ao carregar catálogo de produtos em %s: %s', path, exc)
-        return {}
+            return 0
 
-    return catalogo
+    def __len__(self) -> int:
+        return self.total_produtos()
+
+    def get(self, codigo: str, default=None):
+        codigo = _normalizar_codigo_catalogo(codigo)
+        if not codigo:
+            return default
+        try:
+            row = self._fetchone(
+                """
+                SELECT p.codigo, p.nome, p.gtin
+                FROM catalogo_lookup l
+                JOIN catalogo_produtos p ON p.id = l.produto_id
+                WHERE l.chave = ?
+                LIMIT 1
+                """,
+                (codigo,),
+            )
+            if not row:
+                return default
+            return {'codigo': row['codigo'] or '', 'nome': row['nome'] or '', 'gtin': row['gtin'] or ''}
+        except Exception:
+            logger.exception('Falha ao consultar catálogo pelo código %s', codigo)
+            return default
+
+    def __contains__(self, codigo: str) -> bool:
+        return self.get(codigo) is not None
+
+    def __getitem__(self, codigo: str):
+        item = self.get(codigo)
+        if item is None:
+            raise KeyError(codigo)
+        return item
+
+    def items(self):
+        self._ensure_ready()
+        with _sqlite_connect(self.db_path, readonly=True) as conn:
+            conn.row_factory = sqlite3.Row
+            for row in conn.execute('SELECT codigo, nome, gtin FROM catalogo_produtos ORDER BY id'):
+                chave = row['gtin'] or row['codigo'] or ''
+                yield chave, {'codigo': row['codigo'] or '', 'nome': row['nome'] or '', 'gtin': row['gtin'] or ''}
+
+
+@lru_cache(maxsize=1)
+def carregar_catalogo_produtos():
+    return CatalogoProdutos()
 
 
 def buscar_catalogo(codigo: str):
-    codigo = _normalizar_codigo_catalogo(codigo)
-    if not codigo:
-        return None
     return carregar_catalogo_produtos().get(codigo)
-
 
 def limpar_validade(valor) -> str:
     """Aceita yyyy-mm-dd, dd/mm/yyyy ou data Excel e devolve yyyy-mm-dd."""
@@ -460,7 +696,7 @@ def importar_produtos_de_planilha(conta: Conta, arquivo) -> tuple[int, list[str]
     return criados, erros[:5]
 
 
-ASAAS_BASE_URL = 'https://api.asaas.com/v3'
+ASAAS_BASE_URL = getattr(settings, 'ASAAS_BASE_URL', 'https://api.asaas.com/v3')
 
 
 def asaas_headers():
@@ -521,6 +757,7 @@ def criar_pagamento_pix(email: str):
                 'customer': customer_id,
                 'billingType': 'PIX',
                 'value': settings.PIX_VALOR,
+                'dueDate': (date.today() + timedelta(days=1)).isoformat(),
                 'description': settings.PAGAMENTO_DESCRICAO,
                 'externalReference': email,
             },
