@@ -31,6 +31,10 @@ from .services import (
     produtos_do_usuario,
     registrar_log,
     ativar_usuario,
+    solicitar_codigo_autorizacao,
+    validar_codigo_autorizacao,
+    marcar_codigo_autorizacao_usado,
+    whatsapp_authorization_link,
 )
 
 
@@ -66,24 +70,50 @@ def registrar_view(request):
     if request.session.get('email'):
         return redirect('core:dashboard')
 
+    context = {
+        'cadastro_autorizacao_obrigatoria': getattr(settings, 'CADASTRO_AUTORIZACAO_OBRIGATORIA', True),
+        'cadastro_whatsapp_link': whatsapp_authorization_link(),
+        'codigo_solicitado_para': '',
+    }
+
     if request.method == 'POST':
+        acao = request.POST.get('acao', 'criar_conta')
         email = request.POST.get('email', '')
         senha = request.POST.get('senha', '')
         confirmar = request.POST.get('confirmar', '')
+        codigo = request.POST.get('codigo_autorizacao', '')
+        context['codigo_solicitado_para'] = email
+        context['cadastro_whatsapp_link'] = whatsapp_authorization_link(email)
+
+        if acao == 'solicitar_codigo':
+            resultado, erro = solicitar_codigo_autorizacao(email, get_client_ip(request))
+            if erro:
+                messages.error(request, erro)
+            else:
+                context['codigo_solicitado_para'] = resultado['email']
+                context['cadastro_whatsapp_link'] = resultado.get('whatsapp_link') or context['cadastro_whatsapp_link']
+                messages.success(request, 'Código enviado para o e-mail autorizado do administrador.')
+                messages.info(request, 'Agora peça o código ao administrador pelo e-mail ou WhatsApp autorizado.')
+            return render(request, 'core/registrar.html', context)
 
         if senha != confirmar:
             messages.error(request, 'As senhas não coincidem.')
         else:
-            conta, erro = criar_conta(email, senha, get_client_ip(request))
-            if erro:
-                messages.error(request, erro)
+            autorizacao, erro_codigo = validar_codigo_autorizacao(email, codigo)
+            if erro_codigo:
+                messages.error(request, erro_codigo)
             else:
-                request.session['email'] = conta.email
-                request.session['usuario'] = conta.email.split('@')[0]
-                messages.success(request, 'Conta criada com sucesso.')
-                return redirect('core:dashboard')
+                conta, erro = criar_conta(email, senha, get_client_ip(request))
+                if erro:
+                    messages.error(request, erro)
+                else:
+                    marcar_codigo_autorizacao_usado(autorizacao.get('id'))
+                    request.session['email'] = conta.email
+                    request.session['usuario'] = conta.email.split('@')[0]
+                    messages.success(request, 'Conta criada com autorização do administrador.')
+                    return redirect('core:dashboard')
 
-    return render(request, 'core/registrar.html')
+    return render(request, 'core/registrar.html', context)
 
 
 def logout_view(request):

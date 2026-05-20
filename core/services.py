@@ -8,6 +8,8 @@ import re
 import sqlite3
 import tempfile
 import uuid
+import secrets
+import urllib.parse
 from pathlib import Path
 from zipfile import ZipFile
 from xml.etree.ElementTree import iterparse
@@ -91,6 +93,176 @@ def registrar_log(email: str, acao: str) -> None:
             cursor.execute('INSERT INTO logs (email, acao, criado_em) VALUES (%s, %s, %s)', [email, acao, datetime.now()])
     except Exception:
         pass
+
+
+
+
+def _parse_dt(valor):
+    if not valor:
+        return None
+    if isinstance(valor, datetime):
+        return valor
+    texto = str(valor).split('.')[0]
+    for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S'):
+        try:
+            return datetime.strptime(texto, fmt)
+        except Exception:
+            pass
+    return None
+
+
+def _codigo_hash(email: str, codigo: str) -> str:
+    base = f"{normalizar_email(email)}:{(codigo or '').strip()}:{settings.SECRET_KEY}"
+    return hashlib.sha256(base.encode('utf-8')).hexdigest()
+
+
+def gerar_codigo_numerico() -> str:
+    return str(100000 + secrets.randbelow(900000))
+
+
+def whatsapp_authorization_link(email: str = '') -> str:
+    numero = re.sub(r'\D+', '', getattr(settings, 'CADASTRO_AUTORIZACAO_WHATSAPP', '') or '')
+    if not numero:
+        return ''
+    if not numero.startswith('55') and len(numero) in (10, 11):
+        numero = '55' + numero
+    msg = (
+        'Olá, solicitei um código de autorização para criar conta no ValiControl Web.'
+        + (f' Usuário/e-mail: {normalizar_email(email)}.' if email else '')
+    )
+    return f"https://wa.me/{numero}?text={urllib.parse.quote(msg)}"
+
+
+def _lista_emails_autorizacao() -> list[str]:
+    valor = getattr(settings, 'CADASTRO_AUTORIZACAO_EMAIL', '') or ''
+    emails = [item.strip() for item in re.split(r'[,;\s]+', valor) if item.strip()]
+    return emails
+
+
+def _enviar_email_brevo(destinatarios: list[str], assunto: str, texto: str, html: str = ''):
+    api_key = (getattr(settings, 'BREVO_API_KEY', '') or '').strip().strip('"').strip("'")
+    sender_email = (getattr(settings, 'BREVO_SENDER_EMAIL', '') or '').strip()
+    sender_name = (getattr(settings, 'BREVO_SENDER_NAME', '') or 'ValiControl Web').strip()
+    if not api_key or not sender_email:
+        return False, 'Configure BREVO_API_KEY e BREVO_SENDER_EMAIL no RunSite.'
+
+    payload = {
+        'sender': {'name': sender_name, 'email': sender_email},
+        'to': [{'email': email} for email in destinatarios],
+        'subject': assunto,
+        'textContent': texto,
+        'htmlContent': html or texto.replace('\n', '<br>'),
+    }
+    try:
+        response = requests.post(
+            'https://api.brevo.com/v3/smtp/email',
+            headers={'api-key': api_key, 'accept': 'application/json', 'content-type': 'application/json'},
+            json=payload,
+            timeout=getattr(settings, 'EMAIL_TIMEOUT', 20),
+        )
+        if response.status_code >= 400:
+            detalhes = response.text[:500]
+            return False, f'Brevo recusou o envio ({response.status_code}): {detalhes}'
+        return True, None
+    except Exception as exc:
+        return False, f'Erro ao conectar na Brevo: {exc}'
+
+
+def solicitar_codigo_autorizacao(email: str, ip: str = ''):
+    # Gera um código e envia para o e-mail administrativo configurado.
+    # O código nunca é enviado ao usuário solicitante; o administrador repassa se autorizar.
+    email = normalizar_email(email)
+    if not email:
+        return None, 'Informe o usuário/e-mail para solicitar o código.'
+    if Conta.objects.filter(email=email).exists():
+        return None, 'Este usuário já existe. Use a tela de login.'
+
+    destinatarios = _lista_emails_autorizacao()
+    if not destinatarios:
+        return None, 'Configure CADASTRO_AUTORIZACAO_EMAIL no RunSite.'
+
+    codigo = gerar_codigo_numerico()
+    agora = datetime.now()
+    expira = agora + timedelta(minutes=getattr(settings, 'CADASTRO_CODIGO_EXPIRA_MINUTOS', 30))
+    codigo_hash = _codigo_hash(email, codigo)
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            '''
+            INSERT INTO codigos_autorizacao (email, codigo_hash, ip, canal, criado_em, expira_em, usado_em)
+            VALUES (%s, %s, %s, %s, %s, %s, NULL)
+            ''',
+            [email, codigo_hash, ip, 'email_admin', agora, expira],
+        )
+
+    assunto = f'Código de autorização ValiControl: {codigo}'
+    texto = (
+        'Código de autorização para criação de conta no ValiControl Web\n\n'
+        f'Código: {codigo}\n'
+        f'Conta solicitada: {email}\n'
+        f'IP: {ip or "não identificado"}\n'
+        f'Validade: {getattr(settings, "CADASTRO_CODIGO_EXPIRA_MINUTOS", 30)} minutos\n\n'
+        'Repasse este código somente se você reconhecer e autorizar a criação da conta.'
+    )
+    html = f'''
+    <div style="font-family:Arial,sans-serif;line-height:1.5;color:#0f172a">
+      <h2>Código de autorização ValiControl</h2>
+      <p>Uma nova conta solicitou autorização para cadastro.</p>
+      <p style="font-size:28px;font-weight:800;letter-spacing:4px;background:#f1f5f9;padding:14px;border-radius:10px;display:inline-block">{codigo}</p>
+      <p><strong>Conta solicitada:</strong> {email}</p>
+      <p><strong>IP:</strong> {ip or 'não identificado'}</p>
+      <p><strong>Validade:</strong> {getattr(settings, 'CADASTRO_CODIGO_EXPIRA_MINUTOS', 30)} minutos</p>
+      <p>Repasse este código somente se você reconhecer e autorizar a criação da conta.</p>
+    </div>
+    '''
+    ok, erro = _enviar_email_brevo(destinatarios, assunto, texto, html)
+    if not ok:
+        return None, erro
+    registrar_log(email, 'codigo_cadastro_enviado_admin')
+    return {'email': email, 'expira_em': expira, 'whatsapp_link': whatsapp_authorization_link(email)}, None
+
+
+def validar_codigo_autorizacao(email: str, codigo: str):
+    if not getattr(settings, 'CADASTRO_AUTORIZACAO_OBRIGATORIA', True):
+        return {'id': None}, None
+
+    email = normalizar_email(email)
+    codigo = (codigo or '').strip()
+    if not codigo:
+        return None, 'Informe o código de autorização.'
+    if not re.fullmatch(r'\d{6}', codigo):
+        return None, 'O código de autorização precisa ter 6 números.'
+
+    esperado = _codigo_hash(email, codigo)
+    with connection.cursor() as cursor:
+        cursor.execute(
+            '''
+            SELECT id, expira_em, usado_em
+            FROM codigos_autorizacao
+            WHERE email=%s AND codigo_hash=%s
+            ORDER BY criado_em DESC
+            LIMIT 1
+            ''',
+            [email, esperado],
+        )
+        row = cursor.fetchone()
+
+    if not row:
+        return None, 'Código de autorização inválido.'
+    codigo_id, expira_em, usado_em = row
+    if usado_em:
+        return None, 'Este código já foi usado. Solicite outro código.'
+    expira_dt = _parse_dt(expira_em)
+    if expira_dt and expira_dt < datetime.now():
+        return None, 'Este código expirou. Solicite outro código.'
+    return {'id': codigo_id}, None
+
+
+def marcar_codigo_autorizacao_usado(codigo_id) -> None:
+    if not codigo_id:
+        return
+    with connection.cursor() as cursor:
+        cursor.execute('UPDATE codigos_autorizacao SET usado_em=%s WHERE id=%s', [datetime.now(), codigo_id])
 
 
 def criar_conta(email: str, senha: str, ip: str):

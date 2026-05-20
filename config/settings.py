@@ -101,3 +101,14 @@ PAGAMENTO_DESCRICAO = os.getenv('PAGAMENTO_DESCRICAO', 'Plano ValiControl PRO')
 ASAAS_WEBHOOK_TOKEN = os.getenv('ASAAS_WEBHOOK_TOKEN', '').strip()
 DATA_EXCEL_PATH = BASE_DIR / 'data' / 'dados.xlsx'
 DATA_SQLITE_PATH = Path(os.getenv('DATA_SQLITE_PATH', BASE_DIR / 'data' / 'dados.sqlite3'))
+
+# Cadastro autorizado por código enviado ao administrador
+CADASTRO_AUTORIZACAO_OBRIGATORIA = os.getenv('CADASTRO_AUTORIZACAO_OBRIGATORIA', 'True').lower() in {'1', 'true', 'yes', 'on'}
+CADASTRO_AUTORIZACAO_EMAIL = os.getenv('CADASTRO_AUTORIZACAO_EMAIL', os.getenv('CRIADOR_ADMIN_EMAILS', 'canalescanorff28@gmail.com')).strip()
+CADASTRO_AUTORIZACAO_WHATSAPP = os.getenv('CADASTRO_AUTORIZACAO_WHATSAPP', '').strip()
+CADASTRO_CODIGO_EXPIRA_MINUTOS = int(os.getenv('CADASTRO_CODIGO_EXPIRA_MINUTOS', '30'))
+BREVO_API_KEY = os.getenv('BREVO_API_KEY', '').strip().strip('"').strip("'")
+BREVO_SENDER_EMAIL = os.getenv('BREVO_SENDER_EMAIL', '').strip()
+BREVO_SENDER_NAME = os.getenv('BREVO_SENDER_NAME', 'ValiControl Web').strip()
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', f'{BREVO_SENDER_NAME} <{BREVO_SENDER_EMAIL}>' if BREVO_SENDER_EMAIL else 'ValiControl Web <no-reply@localhost>')
+EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '20'))

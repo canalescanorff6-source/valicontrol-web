@@ -1,7 +1,7 @@
-VALICONTROL WEB PREMIUM - CONFIGURAÇÃO PRONTA PARA RUNSITE
+VALICONTROL WEB - CONFIGURAÇÃO RUNSITE
 
 Root Directory:
-.
+(deixe vazio se manage.py estiver na raiz do GitHub)
 
 Build Command:
 bash build.sh
@@ -10,50 +10,45 @@ Start Command:
 bash runsite_start.sh
 
 Port:
-automática/em branco
+automática/em branco. O projeto usa $PORT.
 
-Environment Variables:
-SECRET_KEY=gere_uma_chave_segura
+Environment Variables principais:
+SECRET_KEY=cole_uma_chave_grande_aqui
 DEBUG=False
 RUNSITE=True
+DATABASE_URL=cole_a_url_do_neon_aqui
+ASAAS_API_KEY=cole_a_chave_do_asaas_aqui
 ALLOWED_HOSTS=valicontrol-web.runsite.app,.runsite.app,localhost,127.0.0.1
 CSRF_TRUSTED_ORIGINS=https://valicontrol-web.runsite.app,https://*.runsite.app
-DATABASE_URL=sua_url_postgresql_ou_neon
-ASAAS_API_KEY=sua_chave_asaas
-ASAAS_BASE_URL=https://api.asaas.com/v3
-ASAAS_WEBHOOK_TOKEN=
-PIX_VALOR=10.00
-PAGAMENTO_DESCRICAO=Plano ValiControl PRO
-TRIAL_DIAS=15
-TRIAL_LIMITE_PRODUTOS=50
-TRIAL_MAX_CONTAS_POR_IP=2
-PRO_LIMITE_PRODUTOS=999999
-VENCIMENTO_PROXIMO_DIAS=30
 SECURE_SSL_REDIRECT=False
 SESSION_COOKIE_SECURE=True
 CSRF_COOKIE_SECURE=True
 WEB_CONCURRENCY=1
 GUNICORN_THREADS=2
-PYTHON_VERSION=3.13.5
 
-URLs importantes:
-/                      abre login ou dashboard
-/login/                login
-/registrar/            criar conta trial
-/dashboard/            painel
-/produtos/             produtos
-/pagar/                gerar PIX
-/webhook/asaas/        webhook do Asaas
-/health/               diagnóstico simples
+IMPORTANTE:
+- Suba o conteúdo extraído, não o ZIP fechado.
+- O arquivo manage.py deve ficar na raiz do repositório.
+- A pasta data/ deve subir junto, incluindo dados.xlsx e dados.sqlite3.
+- Se o site não abrir, abra primeiro:
+  https://valicontrol-web.runsite.app/health/
+- Se /health/ não abrir, veja os logs de Deploy/Runtime do RunSite.
 
-Comandos úteis no terminal RunSite:
-python manage.py diagnosticar_runsite
-python manage.py indexar_catalogo --skip-if-ready
-python manage.py ativar_pro email@exemplo.com --dias 30
-python manage.py init_db
-python manage.py collectstatic --noinput --clear
-python manage.py shell -c "from core.services import carregar_catalogo_produtos; c=carregar_catalogo_produtos(); print(len(c)); print(c.get('7898082113571'))"
+Catálogo de códigos:
+O arquivo data/dados.sqlite3 já vai pronto para não travar o RunSite no start.
+Se ele não estiver no GitHub, o site abre, mas a busca automática por GTIN pode não funcionar.
+Para recriar manualmente no terminal do RunSite:
+python manage.py indexar_catalogo --force
 
-Observação:
-A base data/dados.xlsx já está no código. O botão de importação serve para estoque do usuário, não para importar a base de códigos.
-Por segurança, o pacote NÃO inclui suas chaves reais: SECRET_KEY, DATABASE_URL e ASAAS_API_KEY ficam no painel do RunSite.
+
+Cadastro protegido por código:
+CADASTRO_AUTORIZACAO_OBRIGATORIA=True
+CADASTRO_AUTORIZACAO_EMAIL=seu_email_de_administrador
+CADASTRO_AUTORIZACAO_WHATSAPP=55DDDNUMERO
+CADASTRO_CODIGO_EXPIRA_MINUTOS=30
+BREVO_API_KEY=sua_chave_api_brevo
+BREVO_SENDER_EMAIL=email_verificado_na_brevo
+BREVO_SENDER_NAME=ValiControl Web
+DEFAULT_FROM_EMAIL=ValiControl Web <email_verificado_na_brevo>
+
+Fluxo: o usuário solicita o código, o código chega no e-mail autorizado do administrador, e a conta só é criada quando esse código for informado na tela de cadastro.

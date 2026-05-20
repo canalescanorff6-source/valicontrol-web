@@ -45,6 +45,19 @@ POSTGRES_SQL = [
         criado_em TIMESTAMP DEFAULT NOW()
     )
     """,
+
+    """
+    CREATE TABLE IF NOT EXISTS codigos_autorizacao (
+        id SERIAL PRIMARY KEY,
+        email TEXT NOT NULL,
+        codigo_hash TEXT NOT NULL,
+        ip TEXT,
+        canal TEXT,
+        criado_em TIMESTAMP DEFAULT NOW(),
+        expira_em TIMESTAMP,
+        usado_em TIMESTAMP
+    )
+    """,
 ]
 
 SQLITE_SQL = [
@@ -90,18 +103,35 @@ SQLITE_SQL = [
         criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """,
+
+    """
+    CREATE TABLE IF NOT EXISTS codigos_autorizacao (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT NOT NULL,
+        codigo_hash TEXT NOT NULL,
+        ip TEXT,
+        canal TEXT,
+        criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        expira_em TIMESTAMP,
+        usado_em TIMESTAMP
+    )
+    """,
 ]
 
 POSTGRES_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_produtos_user_validade ON produtos (user_email, validade)",
     "CREATE INDEX IF NOT EXISTS idx_produtos_user_codigo ON produtos (user_email, codigo)",
     "CREATE INDEX IF NOT EXISTS idx_produtos_user_nome ON produtos (user_email, nome)",
+    "CREATE INDEX IF NOT EXISTS idx_codigos_autorizacao_email_hash ON codigos_autorizacao (email, codigo_hash)",
+    "CREATE INDEX IF NOT EXISTS idx_codigos_autorizacao_expira ON codigos_autorizacao (expira_em)",
 ]
 
 SQLITE_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_produtos_user_validade ON produtos (user_email, validade)",
     "CREATE INDEX IF NOT EXISTS idx_produtos_user_codigo ON produtos (user_email, codigo)",
     "CREATE INDEX IF NOT EXISTS idx_produtos_user_nome ON produtos (user_email, nome)",
+    "CREATE INDEX IF NOT EXISTS idx_codigos_autorizacao_email_hash ON codigos_autorizacao (email, codigo_hash)",
+    "CREATE INDEX IF NOT EXISTS idx_codigos_autorizacao_expira ON codigos_autorizacao (expira_em)",
 ]
 
 POSTGRES_MIGRATIONS = {
@@ -122,6 +152,13 @@ POSTGRES_MIGRATIONS = {
         "ALTER TABLE pagamentos ADD COLUMN IF NOT EXISTS status TEXT",
         "ALTER TABLE pagamentos ADD COLUMN IF NOT EXISTS criado_em TIMESTAMP DEFAULT NOW()",
     ],
+    'codigos_autorizacao': [
+        "ALTER TABLE codigos_autorizacao ADD COLUMN IF NOT EXISTS ip TEXT",
+        "ALTER TABLE codigos_autorizacao ADD COLUMN IF NOT EXISTS canal TEXT",
+        "ALTER TABLE codigos_autorizacao ADD COLUMN IF NOT EXISTS criado_em TIMESTAMP DEFAULT NOW()",
+        "ALTER TABLE codigos_autorizacao ADD COLUMN IF NOT EXISTS expira_em TIMESTAMP",
+        "ALTER TABLE codigos_autorizacao ADD COLUMN IF NOT EXISTS usado_em TIMESTAMP",
+    ],
 }
 
 SQLITE_MIGRATIONS = {
@@ -141,6 +178,13 @@ SQLITE_MIGRATIONS = {
     'pagamentos': {
         'status': 'ALTER TABLE pagamentos ADD COLUMN status TEXT',
         'criado_em': 'ALTER TABLE pagamentos ADD COLUMN criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
+    },
+    'codigos_autorizacao': {
+        'ip': 'ALTER TABLE codigos_autorizacao ADD COLUMN ip TEXT',
+        'canal': 'ALTER TABLE codigos_autorizacao ADD COLUMN canal TEXT',
+        'criado_em': 'ALTER TABLE codigos_autorizacao ADD COLUMN criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
+        'expira_em': 'ALTER TABLE codigos_autorizacao ADD COLUMN expira_em TIMESTAMP',
+        'usado_em': 'ALTER TABLE codigos_autorizacao ADD COLUMN usado_em TIMESTAMP',
     },
 }
 

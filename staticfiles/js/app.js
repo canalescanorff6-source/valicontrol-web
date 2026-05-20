@@ -1,13 +1,12 @@
 (function () {
-  const emailInput = document.getElementById('emailAuto');
-  if (emailInput) {
+  document.querySelectorAll('.emailAuto, #emailAuto').forEach((emailInput) => {
     emailInput.addEventListener('blur', () => {
       const value = emailInput.value.trim();
       if (value && !value.includes('@')) {
         emailInput.value = value + '@app.com';
       }
     });
-  }
+  });
 
   const codigo = document.getElementById('codigoProduto');
   const nome = document.getElementById('nomeProduto');
