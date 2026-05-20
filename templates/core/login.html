@@ -1,30 +1,59 @@
 {% extends 'core/base.html' %}
-{% load static %}
 {% block title %}Entrar | ValiControl{% endblock %}
 {% block auth %}
-<section class="auth-card glass-panel">
-  <div class="auth-logo auth-logo-static" aria-label="ValiControl">
-    <span class="logo-calendar" aria-hidden="true"></span>
-    <span class="logo-check" aria-hidden="true">✓</span>
+<section class="auth-screen auth-screen-split glass-panel">
+  <div class="auth-showcase">
+    <div class="auth-logo auth-logo-hero auth-logo-static" aria-label="ValiControl">
+      <span class="logo-calendar" aria-hidden="true"></span>
+      <span class="logo-check" aria-hidden="true">✓</span>
+    </div>
+    <p class="eyebrow">ACESSO SEGURO</p>
+    <h1>Entre no <span>ValiControl</span></h1>
+    <p class="muted auth-intro">Um programa web de controle de validades pensado para cadastrar produtos, acompanhar vencimentos e organizar sua rotina com mais segurança.</p>
+
+    <div class="feature-list">
+      <article>
+        <strong>Painel de vencimentos</strong>
+        <small>Visualize vencidos, próximos e produtos em dia.</small>
+      </article>
+      <article>
+        <strong>Busca por código/GTIN</strong>
+        <small>Preenchimento rápido de nome a partir da base já incluída.</small>
+      </article>
+      <article>
+        <strong>Importação e exportação</strong>
+        <small>Trabalhe com planilhas para carregar seu estoque com facilidade.</small>
+      </article>
+    </div>
   </div>
-  <p class="eyebrow">ACESSO WEB</p>
-  <h1>Entrar no ValiControl</h1>
-  <p class="muted">Controle seus produtos e vencimentos direto pela internet, sem instalar executável.</p>
 
-  <form method="post" class="form stack">
-    {% csrf_token %}
-    <label>
-      <span>Usuário ou e-mail</span>
-      <input type="text" name="email" id="emailAuto" placeholder="ex: joao" autocomplete="username" required>
-      <small>@app.com será adicionado automaticamente quando não tiver e-mail completo.</small>
-    </label>
-    <label>
-      <span>Senha</span>
-      <input type="password" name="senha" placeholder="Sua senha" autocomplete="current-password" required>
-    </label>
-    <button class="btn btn-primary" type="submit">Entrar</button>
-  </form>
+  <div class="auth-form-wrap">
+    <div class="auth-form-card">
+      <p class="eyebrow">LOGIN</p>
+      <h2>Acessar conta</h2>
+      <p class="muted">Entre para visualizar o painel, os produtos e o controle de vencimentos.</p>
 
-  <p class="auth-switch">Ainda não tem conta? <a href="{% url 'core:registrar' %}">Criar conta com código</a></p>
+      <form method="post" class="form stack">
+        {% csrf_token %}
+        <label>
+          <span>Usuário ou e-mail</span>
+          <input type="text" name="email" id="emailAuto" placeholder="ex: joao" autocomplete="username" required>
+          <small>@app.com será adicionado automaticamente quando não tiver e-mail completo.</small>
+        </label>
+        <label>
+          <span>Senha</span>
+          <input type="password" name="senha" placeholder="Sua senha" autocomplete="current-password" required>
+        </label>
+        <button class="btn btn-primary btn-lg" type="submit">Entrar no sistema</button>
+      </form>
+
+      <div class="auth-footer-box">
+        <span class="shield-ico">✓</span>
+        <p>Seus dados ficam protegidos em um ambiente web preparado para o controle de validade.</p>
+      </div>
+
+      <p class="auth-switch">Ainda não tem conta? <a href="{% url 'core:registrar' %}">Criar conta com código</a></p>
+    </div>
+  </div>
 </section>
 {% endblock %}

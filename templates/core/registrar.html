@@ -1,8 +1,7 @@
 {% extends 'core/base.html' %}
-{% load static %}
 {% block title %}Cadastro autorizado | ValiControl{% endblock %}
 {% block auth %}
-<section class="auth-card auth-card-authorized glass-panel" data-screen="cadastro-autorizado-v3">
+<section class="auth-screen glass-panel auth-card-authorized" data-screen="cadastro-autorizado-v4">
   <div class="auth-layout">
     <div class="auth-institutional-panel">
       <div class="auth-logo auth-logo-large auth-logo-static" aria-label="ValiControl">
@@ -12,19 +11,19 @@
       <p class="eyebrow">CADASTRO PROTEGIDO</p>
       <h1>Criar conta autorizada</h1>
       <p class="muted auth-lead">
-        Para manter o ValiControl seguro, novas contas só podem ser criadas com um código numérico enviado ao administrador autorizado.
+        O ValiControl usa cadastro protegido por código para manter o acesso mais seguro. O código de 6 dígitos é enviado para o administrador autorizado e só depois a conta pode ser criada.
       </p>
 
       <div class="authorization-box">
-        <span class="authorization-kicker">ADMINISTRADOR QUE RECEBE O CÓDIGO</span>
+        <span class="authorization-kicker">E-mail autorizado que recebe o código</span>
         <strong>{{ cadastro_email_travado|default:'thiago01268230@gmail.com' }}</strong>
-        <small>O código tem 6 dígitos, expira automaticamente e só pode ser usado uma vez.</small>
+        <small>O código expira automaticamente, só pode ser usado uma vez e fica vinculado ao cadastro autorizado.</small>
       </div>
 
       <div class="auth-steps">
-        <div><b>1</b><span>O e-mail autorizado já fica travado no cadastro.</span></div>
-        <div><b>2</b><span>Clique em enviar código para receber no e-mail autorizado.</span></div>
-        <div><b>3</b><span>Digite o código recebido e finalize a senha.</span></div>
+        <div><b>1</b><span>Clique em <strong>Enviar código</strong> para disparar a autorização.</span></div>
+        <div><b>2</b><span>Receba o código no e-mail administrativo travado.</span></div>
+        <div><b>3</b><span>Digite o código e finalize a criação da conta.</span></div>
       </div>
     </div>
 
@@ -38,7 +37,7 @@
           <span>E-mail autorizado para receber o código</span>
           <input type="hidden" name="email" value="{{ cadastro_email_travado|default:'thiago01268230@gmail.com' }}">
           <input type="email" class="email-locked" value="{{ cadastro_email_travado|default:'thiago01268230@gmail.com' }}" autocomplete="username" readonly aria-readonly="true">
-          <small>Este e-mail fica travado pelo administrador do sistema.</small>
+          <small>Este e-mail foi definido pelo administrador e fica bloqueado na tela.</small>
         </label>
         <button class="btn btn-ghost w-full" type="submit">Enviar código para o administrador</button>
         {% if cadastro_whatsapp_link %}
@@ -55,12 +54,12 @@
           <span>E-mail autorizado</span>
           <input type="hidden" name="email" value="{{ cadastro_email_travado|default:'thiago01268230@gmail.com' }}">
           <input type="email" class="email-locked" value="{{ cadastro_email_travado|default:'thiago01268230@gmail.com' }}" autocomplete="username" readonly aria-readonly="true">
-          <small>A conta será criada para este e-mail autorizado.</small>
+          <small>A nova conta será vinculada a este e-mail autorizado.</small>
         </label>
         <label>
           <span>Código de autorização</span>
           <input class="authorization-code-input" type="text" name="codigo_autorizacao" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000" autocomplete="one-time-code" required>
-          <small>Digite os 6 números enviados para {{ cadastro_email_travado|default:'o e-mail autorizado' }}.</small>
+          <small>Digite os 6 números recebidos em {{ cadastro_email_travado|default:'o e-mail autorizado' }}.</small>
         </label>
         <label>
           <span>Senha</span>
@@ -70,7 +69,7 @@
           <span>Confirmar senha</span>
           <input type="password" name="confirmar" placeholder="Repita a senha" autocomplete="new-password" required>
         </label>
-        <button class="btn btn-primary" type="submit">Criar conta autorizada</button>
+        <button class="btn btn-primary btn-lg" type="submit">Criar conta autorizada</button>
       </form>
 
       <p class="auth-switch">Já tem conta? <a href="{% url 'core:login' %}">Entrar</a></p>

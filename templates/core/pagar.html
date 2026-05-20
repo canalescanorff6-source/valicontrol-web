@@ -1,55 +1,56 @@
 {% extends 'core/base.html' %}
 {% block title %}Upgrade PRO | ValiControl{% endblock %}
+{% block topbar_title %}Plano e pagamento{% endblock %}
 {% block content %}
-<header class="page-header">
+<header class="page-header page-header-enhanced">
   <div>
-    <p class="eyebrow">PAGAMENTO</p>
+    <p class="eyebrow">PLANO PRO</p>
     <h1>Upgrade PRO</h1>
-    <p class="muted">Gere um PIX pelo Asaas para ativar o plano PRO.</p>
+    <p class="muted">Ative o plano profissional para remover limites de cadastro e manter seu programa de validade ainda mais livre para crescer.</p>
   </div>
 </header>
 
-<section class="stats-grid compact">
-  <article class="stat-card glass-panel">
-    <span>Plano atual</span>
+<section class="metrics-grid metrics-grid-products">
+  <article class="metric-card glass-panel metric-neutral">
+    <span class="metric-label">Plano atual</span>
     <strong>{{ stats.plano }}</strong>
     <small>{% if stats.ativo %}Ativo{% else %}{{ stats.trial_restante }} dia(s) de trial{% endif %}</small>
   </article>
-  <article class="stat-card glass-panel ok">
-    <span>Limite PRO</span>
+  <article class="metric-card glass-panel metric-success">
+    <span class="metric-label">Limite PRO</span>
     <strong>∞</strong>
     <small>Cadastros liberados</small>
   </article>
 </section>
 
-<section class="glass-panel card-section pay-grid">
+<section class="glass-panel card-section pay-grid modern-pay-grid">
   <div>
     <h2>Plano ValiControl PRO</h2>
-    <p class="muted">Libere mais cadastros e continue usando o sistema pela internet.</p>
+    <p class="muted">Mantenha o controle de validades ativo na internet, sem se preocupar com o limite do trial.</p>
     <ul class="check-list">
-      <li>Controle online de produtos</li>
-      <li>Acesso pelo navegador em celular ou computador</li>
-      <li>Dashboard de vencimentos</li>
+      <li>Cadastros liberados para sua operação</li>
+      <li>Controle de produtos e vencimentos pelo navegador</li>
       <li>Importação e exportação de planilhas</li>
-      <li>Backup no banco em nuvem</li>
+      <li>Painel contínuo para acompanhamento de estoque</li>
+      <li>Base de dados hospedada em nuvem</li>
     </ul>
     <form method="post">
       {% csrf_token %}
-      <button class="btn btn-primary" type="submit">Gerar PIX</button>
+      <button class="btn btn-primary btn-lg" type="submit">Gerar PIX</button>
     </form>
   </div>
 
-  <div class="qr-box">
+  <div class="qr-box payment-box">
     {% if pagamento %}
       <p class="eyebrow">PIX GERADO</p>
       {% if pagamento.qr_base64 %}
         <img src="data:image/png;base64,{{ pagamento.qr_base64 }}" alt="QR Code PIX">
       {% endif %}
       <textarea readonly id="pixCopiaCola">{{ pagamento.qr }}</textarea>
-      <button class="btn btn-ghost w-full" type="button" data-copy="#pixCopiaCola">Copiar PIX</button>
-      <small class="muted">Copie o código PIX ou escaneie o QR Code. A ativação acontece quando o webhook do Asaas confirmar o pagamento.</small>
+      <button class="btn btn-ghost w-full" type="button" data-copy="#pixCopiaCola">Copiar código PIX</button>
+      <small class="muted">Copie o código PIX ou escaneie o QR Code. A ativação ocorre após a confirmação de pagamento pelo Asaas.</small>
     {% else %}
-      <div class="empty">Clique em “Gerar PIX” para criar uma cobrança.</div>
+      <div class="empty">Clique em “Gerar PIX” para criar sua cobrança e ativar o PRO.</div>
     {% endif %}
   </div>
 </section>

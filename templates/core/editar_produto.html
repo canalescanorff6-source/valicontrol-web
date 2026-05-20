@@ -1,17 +1,24 @@
 {% extends 'core/base.html' %}
 {% block title %}Editar produto | ValiControl{% endblock %}
+{% block topbar_title %}Edição de produto{% endblock %}
 {% block content %}
-<header class="page-header">
+<header class="page-header page-header-enhanced">
   <div>
-    <p class="eyebrow">EDIÇÃO</p>
+    <p class="eyebrow">EDIÇÃO DE CADASTRO</p>
     <h1>Editar produto</h1>
-    <p class="muted">Atualize os dados do produto selecionado.</p>
+    <p class="muted">Atualize os dados do item selecionado e mantenha o controle de validade sempre correto.</p>
   </div>
-  <a class="btn btn-ghost" href="{% url 'core:produtos' %}">Voltar</a>
+  <a class="btn btn-ghost" href="{% url 'core:produtos' %}">Voltar para produtos</a>
 </header>
 
 <section class="glass-panel card-section">
-  <form method="post" class="product-form edit-form">
+  <div class="section-title">
+    <div>
+      <h2>Dados do produto</h2>
+      <p class="muted">Revise código, nome, validade, quantidade e tipo.</p>
+    </div>
+  </div>
+  <form method="post" class="product-form edit-form edit-form-modern">
     {% csrf_token %}
     <label>
       <span>Código/GTIN</span>

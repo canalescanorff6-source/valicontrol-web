@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#020617">
+  <meta name="theme-color" content="#041122">
   <title>{% block title %}{{ APP_NAME }}{% endblock %}</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230f172a'/%3E%3Cpath d='M18 33l9 9 20-22' fill='none' stroke='%2322c55e' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ctext x='32' y='56' text-anchor='middle' fill='%2338bdf8' font-size='12' font-family='Arial' font-weight='700'%3EVC%3C/text%3E%3C/svg%3E">
   <link rel="preload" href="{% static 'css/app.css' %}" as="style">
@@ -12,38 +12,81 @@
   <script defer src="{% static 'js/app.js' %}"></script>
 </head>
 <body>
+  <div class="bg-grid"></div>
   <div class="bg-orb orb-a"></div>
   <div class="bg-orb orb-b"></div>
+  <div class="bg-orb orb-c"></div>
 
   {% if request.session.email %}
   <div class="app-shell">
     <aside class="sidebar glass-panel">
-      <a href="{% url 'core:dashboard' %}" class="brand">
-        <span class="brand-icon">✓</span>
+      <a href="{% url 'core:dashboard' %}" class="brand brand-large">
+        <span class="brand-icon icon-calendar-check"></span>
         <span>
           <strong>ValiControl</strong>
-          <small>Controle de validade</small>
+          <small>Programa de controle de validades</small>
         </span>
       </a>
-      <nav class="nav">
-        <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'core:dashboard' %}">📊 Dashboard</a>
-        <a class="nav-link {% if request.resolver_match.url_name == 'produtos' %}active{% endif %}" href="{% url 'core:produtos' %}">📦 Produtos</a>
-        <a class="nav-link {% if request.resolver_match.url_name == 'pagar' %}active{% endif %}" href="{% url 'core:pagar' %}">💳 Upgrade PRO</a>
+
+      <nav class="nav nav-vertical">
+        <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'core:dashboard' %}">
+          <span class="nav-ico">◫</span>
+          <span>Dashboard</span>
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'produtos' or request.resolver_match.url_name == 'editar_produto' %}active{% endif %}" href="{% url 'core:produtos' %}">
+          <span class="nav-ico">◧</span>
+          <span>Produtos</span>
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'pagar' %}active{% endif %}" href="{% url 'core:pagar' %}">
+          <span class="nav-ico">◎</span>
+          <span>Plano PRO</span>
+        </a>
       </nav>
-      <div class="sidebar-user">
-        <span class="dot"></span>
+
+      <section class="sidebar-pro-card">
         <div>
-          <strong>{{ request.session.usuario|default:'Usuário' }}</strong>
-          <small>{{ request.session.email }}</small>
+          <span class="card-kicker">ValiControl</span>
+          <strong>Programa de validade</strong>
+          <small>Cadastre produtos, acompanhe vencimentos e evite perdas.</small>
         </div>
+        <a class="btn btn-ghost btn-sm w-full" href="{% url 'core:produtos' %}">Abrir cadastros</a>
+      </section>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <span class="dot"></span>
+          <div>
+            <strong>{{ request.session.usuario|default:'Usuário' }}</strong>
+            <small>{{ request.session.email }}</small>
+          </div>
+        </div>
+        <a class="btn btn-ghost w-full" href="{% url 'core:logout' %}">Sair</a>
       </div>
-      <a class="btn btn-ghost w-full" href="{% url 'core:logout' %}">Sair</a>
     </aside>
 
-    <main class="content">
-      {% include 'core/partials_messages.html' %}
-      {% block content %}{% endblock %}
-    </main>
+    <section class="workspace">
+      <header class="topbar glass-panel">
+        <div>
+          <p class="topbar-kicker">VALICONTROL WEB</p>
+          <h2>{% block topbar_title %}Controle de validades{% endblock %}</h2>
+        </div>
+        <div class="topbar-meta">
+          <span class="topbar-chip">Programa web</span>
+          <span class="user-badge">
+            <span class="user-badge-avatar">{{ request.session.usuario|first|upper }}</span>
+            <span>
+              <strong>{{ request.session.usuario|default:'Usuário' }}</strong>
+              <small>Administrador</small>
+            </span>
+          </span>
+        </div>
+      </header>
+
+      <main class="content">
+        {% include 'core/partials_messages.html' %}
+        {% block content %}{% endblock %}
+      </main>
+    </section>
   </div>
   {% else %}
     <main class="auth-page">

@@ -1,97 +1,137 @@
 {% extends 'core/base.html' %}
 {% block title %}Produtos | ValiControl{% endblock %}
+{% block topbar_title %}Cadastro e consulta de produtos{% endblock %}
 {% block content %}
-<header class="page-header">
+<header class="page-header page-header-enhanced">
   <div>
-    <p class="eyebrow">CONTROLE DE VALIDADE</p>
+    <p class="eyebrow">CONTROLE DE PRODUTOS</p>
     <h1>Produtos</h1>
-    <p class="muted">Cadastre produtos, pesquise por código/GTIN, importe planilhas e acompanhe vencimentos.</p>
+    <p class="muted">Cadastre itens, pesquise por código/GTIN, carregue estoque via planilha e acompanhe a situação de validade em um layout mais operacional.</p>
   </div>
   <div class="header-actions">
     <a class="btn btn-ghost" href="{% url 'core:exportar_produtos' 'xlsx' %}">Exportar Excel</a>
-    <a class="btn btn-ghost" href="{% url 'core:exportar_produtos' 'csv' %}">CSV</a>
+    <a class="btn btn-ghost" href="{% url 'core:exportar_produtos' 'csv' %}">Exportar CSV</a>
   </div>
 </header>
 
 {% if stats.bloqueado %}
-<section class="glass-panel alert-card">
-  <strong>Cadastro bloqueado no plano atual</strong>
-  <span>{% if stats.trial_expirado %}Seu trial expirou.{% else %}Você atingiu o limite de produtos.{% endif %} Faça upgrade para continuar cadastrando.</span>
+<section class="glass-panel alert-card danger-state">
+  <div class="alert-icon">!</div>
+  <div>
+    <strong>Cadastro bloqueado no plano atual</strong>
+    <span>{% if stats.trial_expirado %}Seu trial expirou.{% else %}Você atingiu o limite de produtos.{% endif %} Ative o plano PRO para continuar cadastrando.</span>
+  </div>
   <a class="btn btn-primary" href="{% url 'core:pagar' %}">Ativar PRO</a>
 </section>
 {% endif %}
 
-<section class="glass-panel card-section">
-  <div class="section-title">
-    <div>
-      <h2>Novo produto</h2>
-      <p class="muted">Digite o código ou GTIN para tentar preencher o nome automaticamente.</p>
-    </div>
-    <span class="pill">{{ stats.total }} / {{ stats.limite }}</span>
-  </div>
+<section class="metrics-grid metrics-grid-products">
+  <article class="metric-card glass-panel metric-neutral">
+    <span class="metric-label">Total cadastrados</span>
+    <strong>{{ stats.total }}</strong>
+    <small>{{ stats.total }} produto(s) no sistema</small>
+  </article>
+  <article class="metric-card glass-panel metric-danger">
+    <span class="metric-label">Vencidos</span>
+    <strong>{{ stats.vencidos }}</strong>
+    <small>Produtos fora da validade</small>
+  </article>
+  <article class="metric-card glass-panel metric-warn">
+    <span class="metric-label">Próximos</span>
+    <strong>{{ stats.proximos }}</strong>
+    <small>Itens para monitorar</small>
+  </article>
+  <article class="metric-card glass-panel metric-success">
+    <span class="metric-label">Limite do plano</span>
+    <strong>{{ stats.limite }}</strong>
+    <small>Plano {{ stats.plano }} · {{ stats.uso }}% utilizado</small>
+  </article>
+</section>
 
-  <form method="post" class="product-form">
-    {% csrf_token %}
-    <label>
-      <span>Código/GTIN</span>
-      <input type="text" name="codigo" id="codigoProduto" placeholder="Ex: 789..." required {% if stats.bloqueado %}disabled{% endif %}>
-    </label>
-    <label class="wide">
-      <span>Nome</span>
-      <input type="text" name="nome" id="nomeProduto" placeholder="Nome do produto" required {% if stats.bloqueado %}disabled{% endif %}>
-    </label>
-    <label>
-      <span>Validade</span>
-      <input type="date" name="validade" required {% if stats.bloqueado %}disabled{% endif %}>
-    </label>
-    <label>
-      <span>Quantidade</span>
-      <input type="number" name="quantidade" min="0" step="1" placeholder="0" required {% if stats.bloqueado %}disabled{% endif %}>
-    </label>
-    <label>
-      <span>Tipo</span>
-      <select name="tipo_qtd" {% if stats.bloqueado %}disabled{% endif %}>
-        {% for tipo in tipos_qtd %}<option value="{{ tipo }}">{{ tipo }}</option>{% endfor %}
-      </select>
-    </label>
-    <button class="btn btn-primary" type="submit" {% if stats.bloqueado %}disabled{% endif %}>Adicionar</button>
-  </form>
+<section class="products-layout">
+  <section class="glass-panel card-section">
+    <div class="section-title">
+      <div>
+        <h2>Novo produto</h2>
+        <p class="muted">Digite o código ou GTIN para tentar preencher o nome automaticamente.</p>
+      </div>
+      <span class="pill">{{ stats.total }} / {{ stats.limite }}</span>
+    </div>
+
+    <form method="post" class="product-form product-form-modern">
+      {% csrf_token %}
+      <label>
+        <span>Código/GTIN</span>
+        <input type="text" name="codigo" id="codigoProduto" placeholder="Ex: 789..." required {% if stats.bloqueado %}disabled{% endif %}>
+      </label>
+      <label class="wide">
+        <span>Nome</span>
+        <input type="text" name="nome" id="nomeProduto" placeholder="Nome do produto" required {% if stats.bloqueado %}disabled{% endif %}>
+      </label>
+      <label>
+        <span>Validade</span>
+        <input type="date" name="validade" required {% if stats.bloqueado %}disabled{% endif %}>
+      </label>
+      <label>
+        <span>Quantidade</span>
+        <input type="number" name="quantidade" min="0" step="1" placeholder="0" required {% if stats.bloqueado %}disabled{% endif %}>
+      </label>
+      <label>
+        <span>Tipo</span>
+        <select name="tipo_qtd" {% if stats.bloqueado %}disabled{% endif %}>
+          {% for tipo in tipos_qtd %}<option value="{{ tipo }}">{{ tipo }}</option>{% endfor %}
+        </select>
+      </label>
+      <button class="btn btn-primary" type="submit" {% if stats.bloqueado %}disabled{% endif %}>Adicionar produto</button>
+    </form>
+  </section>
+
+  <section class="glass-panel card-section side-card">
+    <div class="section-title compact">
+      <div>
+        <h2>Importar estoque</h2>
+        <p class="muted">A base de códigos já está no sistema. Use a importação apenas para carregar validade e quantidade do seu estoque.</p>
+      </div>
+    </div>
+    <form method="post" action="{% url 'core:importar_produtos' %}" enctype="multipart/form-data" class="import-form import-form-vertical">
+      {% csrf_token %}
+      <input type="file" name="arquivo" accept=".xlsx,.csv" required {% if stats.bloqueado %}disabled{% endif %}>
+      <button class="btn btn-ghost" type="submit" {% if stats.bloqueado %}disabled{% endif %}>Importar estoque</button>
+    </form>
+    <div class="import-note">
+      <strong>Colunas aceitas</strong>
+      <small>código, nome, validade, quantidade e tipo.</small>
+    </div>
+  </section>
 </section>
 
 <section class="glass-panel card-section">
   <div class="section-title">
     <div>
-      <h2>Importar estoque</h2>
-      <p class="muted">A base de códigos já está no sistema. Use esta opção só para carregar produtos com validade e quantidade.</p>
+      <h2>Lista de produtos</h2>
+      <p class="muted">Consulte e filtre seus cadastros por situação de validade.</p>
     </div>
   </div>
-  <form method="post" action="{% url 'core:importar_produtos' %}" enctype="multipart/form-data" class="import-form">
-    {% csrf_token %}
-    <input type="file" name="arquivo" accept=".xlsx,.csv" required {% if stats.bloqueado %}disabled{% endif %}>
-    <button class="btn btn-ghost" type="submit" {% if stats.bloqueado %}disabled{% endif %}>Importar estoque</button>
-  </form>
-</section>
 
-<section class="glass-panel card-section">
-  <form method="get" class="filters">
-    <input type="search" name="q" value="{{ busca }}" placeholder="Buscar produto...">
+  <form method="get" class="filters filters-modern">
+    <input type="search" name="q" value="{{ busca }}" placeholder="Buscar por nome ou código...">
     <select name="status">
-      <option value="todos" {% if filtro == 'todos' %}selected{% endif %}>Todos</option>
-      <option value="vencido" {% if filtro == 'vencido' %}selected{% endif %}>Vencidos</option>
-      <option value="proximo" {% if filtro == 'proximo' %}selected{% endif %}>Próximos</option>
-      <option value="ok" {% if filtro == 'ok' %}selected{% endif %}>OK</option>
+      <option value="todos" {% if filtro == 'todos' %}selected{% endif %}>Todos os status</option>
+      <option value="vencido" {% if filtro == 'vencido' %}selected{% endif %}>Somente vencidos</option>
+      <option value="proximo" {% if filtro == 'proximo' %}selected{% endif %}>Somente próximos</option>
+      <option value="ok" {% if filtro == 'ok' %}selected{% endif %}>Somente em dia</option>
     </select>
-    <button class="btn btn-ghost" type="submit">Filtrar</button>
+    <button class="btn btn-ghost" type="submit">Aplicar filtro</button>
   </form>
 
   {% if produtos %}
   <div class="table-wrap">
-    <table class="table">
+    <table class="table table-products">
       <thead>
         <tr>
           <th>ID</th>
+          <th>Produto</th>
           <th>Código</th>
-          <th>Nome</th>
           <th>Validade</th>
           <th>Qtd</th>
           <th>Status</th>
@@ -102,16 +142,21 @@
         {% for p in produtos %}
         <tr>
           <td>{{ p.id }}</td>
+          <td>
+            <div class="product-main-info">
+              <strong>{{ p.nome }}</strong>
+              <small>Cadastro {{ p.id }}</small>
+            </div>
+          </td>
           <td>{{ p.codigo }}</td>
-          <td>{{ p.nome }}</td>
           <td>{{ p.validade }}</td>
           <td>{{ p.quantidade }} {{ p.tipo_qtd }}</td>
           <td><span class="badge {{ p.status }}">{{ p.status_label }}</span></td>
           <td class="actions">
-            <a class="icon-btn" href="{% url 'core:editar_produto' p.id %}" title="Editar">✏️</a>
+            <a class="icon-btn" href="{% url 'core:editar_produto' p.id %}" title="Editar">✎</a>
             <form method="post" action="{% url 'core:excluir_produto' p.id %}" onsubmit="return confirm('Excluir este produto?')">
               {% csrf_token %}
-              <button class="icon-btn danger-btn" type="submit" title="Excluir">🗑️</button>
+              <button class="icon-btn danger-btn" type="submit" title="Excluir">🗑</button>
             </form>
           </td>
         </tr>
@@ -120,7 +165,7 @@
     </table>
   </div>
   {% else %}
-    <div class="empty">Nenhum produto encontrado.</div>
+    <div class="empty">Nenhum produto encontrado com os filtros atuais.</div>
   {% endif %}
 
   {% if page_obj and page_obj.paginator.num_pages > 1 %}
