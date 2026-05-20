@@ -1,0 +1,27 @@
+VALICONTROL — CADASTRO POR CÓDIGO ATIVO
+
+Esta versão já contém a tela /registrar/ protegida por código.
+
+Configuração no RunSite:
+
+CADASTRO_AUTORIZACAO_OBRIGATORIA=True
+CADASTRO_AUTORIZACAO_EMAIL=thiago01268230@gmail.com
+CADASTRO_AUTORIZACAO_WHATSAPP=5598996127032
+CADASTRO_CODIGO_EXPIRA_MINUTOS=30
+
+BREVO_API_KEY=sua_chave_real_da_brevo
+BREVO_SENDER_EMAIL=canalescanorff6@gmail.com
+BREVO_SENDER_NAME=ValiControl Web
+DEFAULT_FROM_EMAIL=ValiControl Web <canalescanorff6@gmail.com>
+EMAIL_BACKEND=core.email_backends.BrevoEmailBackend
+EMAIL_TIMEOUT=20
+
+Depois do redeploy, rode no terminal do RunSite:
+python manage.py verificar_cadastro_codigo
+python manage.py diagnosticar_runsite
+
+A página correta deve mostrar:
+CADASTRO AUTORIZADO
+Enviar código para o administrador
+Código de autorização
+Criar conta autorizada

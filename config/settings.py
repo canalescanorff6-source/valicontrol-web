@@ -104,11 +104,13 @@ DATA_SQLITE_PATH = Path(os.getenv('DATA_SQLITE_PATH', BASE_DIR / 'data' / 'dados
 
 # Cadastro autorizado por código enviado ao administrador
 CADASTRO_AUTORIZACAO_OBRIGATORIA = os.getenv('CADASTRO_AUTORIZACAO_OBRIGATORIA', 'True').lower() in {'1', 'true', 'yes', 'on'}
-CADASTRO_AUTORIZACAO_EMAIL = os.getenv('CADASTRO_AUTORIZACAO_EMAIL', os.getenv('CRIADOR_ADMIN_EMAILS', 'canalescanorff28@gmail.com')).strip()
-CADASTRO_AUTORIZACAO_WHATSAPP = os.getenv('CADASTRO_AUTORIZACAO_WHATSAPP', '').strip()
+CADASTRO_AUTORIZACAO_EMAIL = os.getenv('CADASTRO_AUTORIZACAO_EMAIL', os.getenv('CRIADOR_ADMIN_EMAILS', 'thiago01268230@gmail.com')).strip()
+CADASTRO_AUTORIZACAO_WHATSAPP = os.getenv('CADASTRO_AUTORIZACAO_WHATSAPP', '5598996127032').strip()
 CADASTRO_CODIGO_EXPIRA_MINUTOS = int(os.getenv('CADASTRO_CODIGO_EXPIRA_MINUTOS', '30'))
 BREVO_API_KEY = os.getenv('BREVO_API_KEY', '').strip().strip('"').strip("'")
-BREVO_SENDER_EMAIL = os.getenv('BREVO_SENDER_EMAIL', '').strip()
+BREVO_SENDER_EMAIL = os.getenv('BREVO_SENDER_EMAIL', 'canalescanorff6@gmail.com').strip()
 BREVO_SENDER_NAME = os.getenv('BREVO_SENDER_NAME', 'ValiControl Web').strip()
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', f'{BREVO_SENDER_NAME} <{BREVO_SENDER_EMAIL}>' if BREVO_SENDER_EMAIL else 'ValiControl Web <no-reply@localhost>')
 EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '20'))
+
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'core.email_backends.BrevoEmailBackend' if BREVO_API_KEY and BREVO_SENDER_EMAIL else 'django.core.mail.backends.console.EmailBackend')

@@ -16,6 +16,11 @@ class Command(BaseCommand):
         self.stdout.write(f'Database: {connection.vendor}')
         self.stdout.write(f'ASAAS_API_KEY configurada: {bool(settings.ASAAS_API_KEY)}')
         self.stdout.write(f'Webhook token configurado: {bool(settings.ASAAS_WEBHOOK_TOKEN)}')
+        self.stdout.write(f'Cadastro por código obrigatório: {getattr(settings, "CADASTRO_AUTORIZACAO_OBRIGATORIA", None)}')
+        self.stdout.write(f'E-mail que recebe código: {getattr(settings, "CADASTRO_AUTORIZACAO_EMAIL", "")}')
+        self.stdout.write(f'WhatsApp autorizado: {getattr(settings, "CADASTRO_AUTORIZACAO_WHATSAPP", "")}')
+        self.stdout.write(f'BREVO_API_KEY configurada: {bool(getattr(settings, "BREVO_API_KEY", ""))}')
+        self.stdout.write(f'Remetente Brevo: {getattr(settings, "BREVO_SENDER_EMAIL", "")}')
         self.stdout.write(f'Data Excel existe: {settings.DATA_EXCEL_PATH.exists()} -> {settings.DATA_EXCEL_PATH}')
         self.stdout.write(f'Índice do catálogo pronto: {catalogo_index_pronto()}')
         try:
