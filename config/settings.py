@@ -104,7 +104,10 @@ DATA_SQLITE_PATH = Path(os.getenv('DATA_SQLITE_PATH', BASE_DIR / 'data' / 'dados
 
 # Cadastro autorizado por código enviado ao administrador
 CADASTRO_AUTORIZACAO_OBRIGATORIA = os.getenv('CADASTRO_AUTORIZACAO_OBRIGATORIA', 'True').lower() in {'1', 'true', 'yes', 'on'}
-CADASTRO_AUTORIZACAO_EMAIL = os.getenv('CADASTRO_AUTORIZACAO_EMAIL', os.getenv('CRIADOR_ADMIN_EMAILS', 'thiago01268230@gmail.com')).strip()
+# E-mail fixo/travado que recebe o código e também aparece travado na tela de cadastro.
+# Mantido separado do e-mail remetente da Brevo.
+CADASTRO_EMAIL_TRAVADO = os.getenv('CADASTRO_EMAIL_TRAVADO', os.getenv('CADASTRO_DESTINATARIO_CODIGO', 'thiago01268230@gmail.com')).strip()
+CADASTRO_AUTORIZACAO_EMAIL = os.getenv('CADASTRO_AUTORIZACAO_EMAIL', CADASTRO_EMAIL_TRAVADO).strip()
 CADASTRO_AUTORIZACAO_WHATSAPP = os.getenv('CADASTRO_AUTORIZACAO_WHATSAPP', '').strip()
 CADASTRO_CODIGO_EXPIRA_MINUTOS = int(os.getenv('CADASTRO_CODIGO_EXPIRA_MINUTOS', '30'))
 BREVO_API_KEY = os.getenv('BREVO_API_KEY', '').strip().strip('"').strip("'")

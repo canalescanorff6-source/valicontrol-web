@@ -134,8 +134,15 @@ def whatsapp_authorization_link(email: str = '') -> str:
 
 
 def _lista_emails_autorizacao() -> list[str]:
-    valor = getattr(settings, 'CADASTRO_AUTORIZACAO_EMAIL', '') or ''
-    emails = [item.strip() for item in re.split(r'[,;\s]+', valor) if item.strip()]
+    # O destino do código é fixo/travado para não confundir com o remetente da Brevo.
+    # Por padrão, o código vai para thiago01268230@gmail.com.
+    valor = (
+        getattr(settings, 'CADASTRO_EMAIL_TRAVADO', '')
+        or getattr(settings, 'CADASTRO_DESTINATARIO_CODIGO', '')
+        or getattr(settings, 'CADASTRO_AUTORIZACAO_EMAIL', '')
+        or 'thiago01268230@gmail.com'
+    )
+    emails = [item.strip() for item in re.split(r'[,;\s]+', str(valor)) if item.strip()]
     return emails
 
 
@@ -179,7 +186,7 @@ def solicitar_codigo_autorizacao(email: str, ip: str = ''):
 
     destinatarios = _lista_emails_autorizacao()
     if not destinatarios:
-        return None, 'Configure CADASTRO_AUTORIZACAO_EMAIL no RunSite.'
+        return None, 'Configure CADASTRO_EMAIL_TRAVADO no RunSite.'
 
     codigo = gerar_codigo_numerico()
     agora = datetime.now()

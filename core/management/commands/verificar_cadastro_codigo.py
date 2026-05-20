@@ -8,7 +8,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write('== Verificação do cadastro autorizado ==')
-        self.stdout.write(f'CADASTRO_AUTORIZACAO_EMAIL: {getattr(settings, "CADASTRO_AUTORIZACAO_EMAIL", "") or "não configurado"}')
+        self.stdout.write(f'CADASTRO_EMAIL_TRAVADO: {getattr(settings, "CADASTRO_EMAIL_TRAVADO", "") or "não configurado"}')
         self.stdout.write(f'BREVO_SENDER_EMAIL: {getattr(settings, "BREVO_SENDER_EMAIL", "") or "não configurado"}')
         client = Client(HTTP_HOST='testserver')
         response = client.get('/registrar/')
@@ -26,4 +26,4 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR('Tela incorreta. Não encontrei: ' + ', '.join(missing)))
             self.stdout.write(html[:1200])
             return
-        self.stdout.write(self.style.SUCCESS('Cadastro por código está ativo na página renderizada.'))
+        self.stdout.write(self.style.SUCCESS('Cadastro por código com e-mail travado está ativo na página renderizada.'))

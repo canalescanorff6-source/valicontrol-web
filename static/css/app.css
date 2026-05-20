@@ -569,6 +569,20 @@ button:disabled, input:disabled, select:disabled {
   height: 1px;
   background: rgba(148, 163, 184, .16);
 }
+
+.email-locked,
+input[readonly].email-locked {
+  border-color: rgba(45, 212, 191, 0.32);
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.12), rgba(2, 6, 23, 0.86));
+  color: #e2e8f0;
+  cursor: not-allowed;
+  font-weight: 800;
+}
+.email-locked:focus {
+  border-color: rgba(45, 212, 191, 0.5);
+  box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.10);
+}
+
 .authorization-code-input {
   font-size: 1.22rem;
   font-weight: 900;

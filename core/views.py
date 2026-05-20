@@ -66,35 +66,50 @@ def login_view(request):
     return render(request, 'core/login.html')
 
 
+def _email_cadastro_travado() -> str:
+    valor = getattr(settings, 'CADASTRO_EMAIL_TRAVADO', '') or 'thiago01268230@gmail.com'
+    # Se houver mais de um e-mail separado por vírgula, ponto e vírgula ou espaço,
+    # a tela usa o primeiro como conta autorizada travada.
+    for parte in str(valor).replace(';', ',').replace(' ', ',').split(','):
+        parte = parte.strip()
+        if parte:
+            return parte
+    return 'thiago01268230@gmail.com'
+
+
 def registrar_view(request):
     if request.session.get('email'):
         return redirect('core:dashboard')
 
+    email_travado = _email_cadastro_travado()
     context = {
         'cadastro_autorizacao_obrigatoria': True,
-        'cadastro_autorizacao_email': getattr(settings, 'CADASTRO_AUTORIZACAO_EMAIL', 'thiago01268230@gmail.com'),
-        'cadastro_whatsapp_link': whatsapp_authorization_link(),
-        'codigo_solicitado_para': '',
+        'cadastro_autorizacao_email': email_travado,
+        'cadastro_email_travado': email_travado,
+        'cadastro_whatsapp_link': whatsapp_authorization_link(email_travado),
+        'codigo_solicitado_para': email_travado,
     }
 
     if request.method == 'POST':
         acao = request.POST.get('acao', 'criar_conta')
-        email = request.POST.get('email', '')
+        # Cadastro travado: ignora qualquer valor enviado pelo navegador e usa sempre
+        # o e-mail autorizado configurado no RunSite.
+        email = email_travado
         senha = request.POST.get('senha', '')
         confirmar = request.POST.get('confirmar', '')
         codigo = request.POST.get('codigo_autorizacao', '')
-        context['codigo_solicitado_para'] = email
-        context['cadastro_whatsapp_link'] = whatsapp_authorization_link(email)
+        context['codigo_solicitado_para'] = email_travado
+        context['cadastro_whatsapp_link'] = whatsapp_authorization_link(email_travado)
 
         if acao == 'solicitar_codigo':
-            resultado, erro = solicitar_codigo_autorizacao(email, get_client_ip(request))
+            resultado, erro = solicitar_codigo_autorizacao(email_travado, get_client_ip(request))
             if erro:
                 messages.error(request, erro)
             else:
-                context['codigo_solicitado_para'] = resultado['email']
+                context['codigo_solicitado_para'] = email_travado
                 context['cadastro_whatsapp_link'] = resultado.get('whatsapp_link') or context['cadastro_whatsapp_link']
-                messages.success(request, 'Código enviado para o e-mail autorizado do administrador.')
-                messages.info(request, 'Agora peça o código ao administrador pelo e-mail ou WhatsApp autorizado.')
+                messages.success(request, 'Código enviado para o e-mail autorizado: %s.' % email_travado)
+                messages.info(request, 'Use o código recebido nesse e-mail para finalizar o cadastro.')
             return _render_registrar_no_cache(request, context)
 
         if senha != confirmar:
