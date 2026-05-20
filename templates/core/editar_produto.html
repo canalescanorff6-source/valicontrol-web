@@ -1,0 +1,43 @@
+{% extends 'core/base.html' %}
+{% block title %}Editar produto | ValiControl{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <p class="eyebrow">EDIÇÃO</p>
+    <h1>Editar produto</h1>
+    <p class="muted">Atualize os dados do produto selecionado.</p>
+  </div>
+  <a class="btn btn-ghost" href="{% url 'core:produtos' %}">Voltar</a>
+</header>
+
+<section class="glass-panel card-section">
+  <form method="post" class="product-form edit-form">
+    {% csrf_token %}
+    <label>
+      <span>Código/GTIN</span>
+      <input type="text" name="codigo" id="codigoProduto" value="{{ produto.codigo }}" required>
+    </label>
+    <label class="wide">
+      <span>Nome</span>
+      <input type="text" name="nome" id="nomeProduto" value="{{ produto.nome }}" required>
+    </label>
+    <label>
+      <span>Validade</span>
+      <input type="date" name="validade" value="{{ produto.validade }}" required>
+    </label>
+    <label>
+      <span>Quantidade</span>
+      <input type="number" name="quantidade" min="0" step="1" value="{{ produto.quantidade }}" required>
+    </label>
+    <label>
+      <span>Tipo</span>
+      <select name="tipo_qtd">
+        {% for tipo in tipos_qtd %}
+          <option value="{{ tipo }}" {% if produto.tipo_qtd == tipo %}selected{% endif %}>{{ tipo }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button class="btn btn-primary" type="submit">Salvar alterações</button>
+  </form>
+</section>
+{% endblock %}

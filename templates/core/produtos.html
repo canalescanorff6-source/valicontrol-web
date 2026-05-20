@@ -1,0 +1,126 @@
+{% extends 'core/base.html' %}
+{% block title %}Produtos | ValiControl{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <p class="eyebrow">CONTROLE DE VALIDADE</p>
+    <h1>Produtos</h1>
+    <p class="muted">Cadastre produtos, pesquise por código/GTIN, importe planilhas e acompanhe vencimentos.</p>
+  </div>
+  <div class="header-actions">
+    <a class="btn btn-ghost" href="{% url 'core:exportar_produtos' 'xlsx' %}">Exportar Excel</a>
+    <a class="btn btn-ghost" href="{% url 'core:exportar_produtos' 'csv' %}">CSV</a>
+  </div>
+</header>
+
+{% if stats.bloqueado %}
+<section class="glass-panel alert-card">
+  <strong>Cadastro bloqueado no plano atual</strong>
+  <span>{% if stats.trial_expirado %}Seu trial expirou.{% else %}Você atingiu o limite de produtos.{% endif %} Faça upgrade para continuar cadastrando.</span>
+  <a class="btn btn-primary" href="{% url 'core:pagar' %}">Ativar PRO</a>
+</section>
+{% endif %}
+
+<section class="glass-panel card-section">
+  <div class="section-title">
+    <div>
+      <h2>Novo produto</h2>
+      <p class="muted">Digite o código ou GTIN para tentar preencher o nome automaticamente.</p>
+    </div>
+    <span class="pill">{{ stats.total }} / {{ stats.limite }}</span>
+  </div>
+
+  <form method="post" class="product-form">
+    {% csrf_token %}
+    <label>
+      <span>Código/GTIN</span>
+      <input type="text" name="codigo" id="codigoProduto" placeholder="Ex: 789..." required {% if stats.bloqueado %}disabled{% endif %}>
+    </label>
+    <label class="wide">
+      <span>Nome</span>
+      <input type="text" name="nome" id="nomeProduto" placeholder="Nome do produto" required {% if stats.bloqueado %}disabled{% endif %}>
+    </label>
+    <label>
+      <span>Validade</span>
+      <input type="date" name="validade" required {% if stats.bloqueado %}disabled{% endif %}>
+    </label>
+    <label>
+      <span>Quantidade</span>
+      <input type="number" name="quantidade" min="0" step="1" placeholder="0" required {% if stats.bloqueado %}disabled{% endif %}>
+    </label>
+    <label>
+      <span>Tipo</span>
+      <select name="tipo_qtd" {% if stats.bloqueado %}disabled{% endif %}>
+        {% for tipo in tipos_qtd %}<option value="{{ tipo }}">{{ tipo }}</option>{% endfor %}
+      </select>
+    </label>
+    <button class="btn btn-primary" type="submit" {% if stats.bloqueado %}disabled{% endif %}>Adicionar</button>
+  </form>
+</section>
+
+<section class="glass-panel card-section">
+  <div class="section-title">
+    <div>
+      <h2>Importar planilha</h2>
+      <p class="muted">Aceita XLSX ou CSV com colunas: código, nome, validade, quantidade e tipo.</p>
+    </div>
+  </div>
+  <form method="post" action="{% url 'core:importar_produtos' %}" enctype="multipart/form-data" class="import-form">
+    {% csrf_token %}
+    <input type="file" name="arquivo" accept=".xlsx,.csv" required {% if stats.bloqueado %}disabled{% endif %}>
+    <button class="btn btn-ghost" type="submit" {% if stats.bloqueado %}disabled{% endif %}>Importar</button>
+  </form>
+</section>
+
+<section class="glass-panel card-section">
+  <form method="get" class="filters">
+    <input type="search" name="q" value="{{ busca }}" placeholder="Buscar produto...">
+    <select name="status">
+      <option value="todos" {% if filtro == 'todos' %}selected{% endif %}>Todos</option>
+      <option value="vencido" {% if filtro == 'vencido' %}selected{% endif %}>Vencidos</option>
+      <option value="proximo" {% if filtro == 'proximo' %}selected{% endif %}>Próximos</option>
+      <option value="ok" {% if filtro == 'ok' %}selected{% endif %}>OK</option>
+    </select>
+    <button class="btn btn-ghost" type="submit">Filtrar</button>
+  </form>
+
+  {% if produtos %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Código</th>
+          <th>Nome</th>
+          <th>Validade</th>
+          <th>Qtd</th>
+          <th>Status</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in produtos %}
+        <tr>
+          <td>{{ p.id }}</td>
+          <td>{{ p.codigo }}</td>
+          <td>{{ p.nome }}</td>
+          <td>{{ p.validade }}</td>
+          <td>{{ p.quantidade }} {{ p.tipo_qtd }}</td>
+          <td><span class="badge {{ p.status }}">{{ p.status_label }}</span></td>
+          <td class="actions">
+            <a class="icon-btn" href="{% url 'core:editar_produto' p.id %}" title="Editar">✏️</a>
+            <form method="post" action="{% url 'core:excluir_produto' p.id %}" onsubmit="return confirm('Excluir este produto?')">
+              {% csrf_token %}
+              <button class="icon-btn danger-btn" type="submit" title="Excluir">🗑️</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="empty">Nenhum produto encontrado.</div>
+  {% endif %}
+</section>
+{% endblock %}

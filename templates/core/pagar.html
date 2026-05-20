@@ -1,0 +1,56 @@
+{% extends 'core/base.html' %}
+{% block title %}Upgrade PRO | ValiControl{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <p class="eyebrow">PAGAMENTO</p>
+    <h1>Upgrade PRO</h1>
+    <p class="muted">Gere um PIX pelo Asaas para ativar o plano PRO.</p>
+  </div>
+</header>
+
+<section class="stats-grid compact">
+  <article class="stat-card glass-panel">
+    <span>Plano atual</span>
+    <strong>{{ stats.plano }}</strong>
+    <small>{% if stats.ativo %}Ativo{% else %}{{ stats.trial_restante }} dia(s) de trial{% endif %}</small>
+  </article>
+  <article class="stat-card glass-panel ok">
+    <span>Limite PRO</span>
+    <strong>∞</strong>
+    <small>Cadastros liberados</small>
+  </article>
+</section>
+
+<section class="glass-panel card-section pay-grid">
+  <div>
+    <h2>Plano ValiControl PRO</h2>
+    <p class="muted">Libere mais cadastros e continue usando o sistema pela internet.</p>
+    <ul class="check-list">
+      <li>Controle online de produtos</li>
+      <li>Acesso pelo navegador em celular ou computador</li>
+      <li>Dashboard de vencimentos</li>
+      <li>Importação e exportação de planilhas</li>
+      <li>Backup no banco em nuvem</li>
+    </ul>
+    <form method="post">
+      {% csrf_token %}
+      <button class="btn btn-primary" type="submit">Gerar PIX</button>
+    </form>
+  </div>
+
+  <div class="qr-box">
+    {% if pagamento %}
+      <p class="eyebrow">PIX GERADO</p>
+      {% if pagamento.qr_base64 %}
+        <img src="data:image/png;base64,{{ pagamento.qr_base64 }}" alt="QR Code PIX">
+      {% endif %}
+      <textarea readonly id="pixCopiaCola">{{ pagamento.qr }}</textarea>
+      <button class="btn btn-ghost w-full" type="button" data-copy="#pixCopiaCola">Copiar PIX</button>
+      <small class="muted">Copie o código PIX ou escaneie o QR Code. A ativação acontece quando o webhook do Asaas confirmar o pagamento.</small>
+    {% else %}
+      <div class="empty">Clique em “Gerar PIX” para criar uma cobrança.</div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

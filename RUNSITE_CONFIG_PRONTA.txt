@@ -1,0 +1,52 @@
+VALICONTROL WEB PREMIUM - CONFIGURAÇÃO PRONTA PARA RUNSITE
+
+Root Directory:
+.
+
+Build Command:
+bash build.sh
+
+Start Command:
+bash runsite_start.sh
+
+Environment Variables:
+SECRET_KEY=gere_uma_chave_segura
+DEBUG=False
+RUNSITE=True
+ALLOWED_HOSTS=seu-app.runsite.app,.runsite.app,localhost,127.0.0.1
+CSRF_TRUSTED_ORIGINS=https://seu-app.runsite.app,https://*.runsite.app
+DATABASE_URL=sua_url_postgresql
+ASAAS_API_KEY=sua_chave_asaas
+ASAAS_WEBHOOK_TOKEN=
+PIX_VALOR=10.00
+PAGAMENTO_DESCRICAO=Plano ValiControl PRO
+TRIAL_DIAS=15
+TRIAL_LIMITE_PRODUTOS=50
+TRIAL_MAX_CONTAS_POR_IP=2
+PRO_LIMITE_PRODUTOS=999999
+VENCIMENTO_PROXIMO_DIAS=30
+SECURE_SSL_REDIRECT=False
+SESSION_COOKIE_SECURE=True
+CSRF_COOKIE_SECURE=True
+WEB_CONCURRENCY=1
+GUNICORN_THREADS=2
+PYTHON_VERSION=3.13.5
+
+URLs importantes:
+/                      abre login ou dashboard
+/login/                login
+/registrar/            criar conta trial
+/dashboard/            painel
+/produtos/             produtos
+/pagar/                gerar PIX
+/webhook/asaas/        webhook do Asaas
+/health/               diagnóstico simples
+
+Comandos úteis no terminal RunSite:
+python manage.py diagnosticar_runsite
+python manage.py ativar_pro email@exemplo.com --dias 30
+python manage.py init_db
+python manage.py collectstatic --noinput --clear
+
+Observação:
+O pacote está pronto no código. Por segurança, ele NÃO inclui suas chaves reais: SECRET_KEY, DATABASE_URL e ASAAS_API_KEY precisam ficar no painel do RunSite.

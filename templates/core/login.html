@@ -1,0 +1,29 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}Entrar | ValiControl{% endblock %}
+{% block auth %}
+<section class="auth-card glass-panel">
+  <div class="auth-logo">
+    <img src="{% static 'img/logo.png' %}" alt="ValiControl">
+  </div>
+  <p class="eyebrow">ACESSO WEB</p>
+  <h1>Entrar no ValiControl</h1>
+  <p class="muted">Controle seus produtos e vencimentos direto pela internet, sem instalar executável.</p>
+
+  <form method="post" class="form stack">
+    {% csrf_token %}
+    <label>
+      <span>Usuário ou e-mail</span>
+      <input type="text" name="email" id="emailAuto" placeholder="ex: joao" autocomplete="username" required>
+      <small>@app.com será adicionado automaticamente quando não tiver e-mail completo.</small>
+    </label>
+    <label>
+      <span>Senha</span>
+      <input type="password" name="senha" placeholder="Sua senha" autocomplete="current-password" required>
+    </label>
+    <button class="btn btn-primary" type="submit">Entrar</button>
+  </form>
+
+  <p class="auth-switch">Ainda não tem conta? <a href="{% url 'core:registrar' %}">Criar conta trial</a></p>
+</section>
+{% endblock %}

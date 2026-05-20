@@ -1,0 +1,33 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}Criar conta | ValiControl{% endblock %}
+{% block auth %}
+<section class="auth-card glass-panel">
+  <div class="auth-logo">
+    <img src="{% static 'img/logo.png' %}" alt="ValiControl">
+  </div>
+  <p class="eyebrow">TRIAL GRATUITO</p>
+  <h1>Criar conta</h1>
+  <p class="muted">Comece com limite de produtos no trial e faça upgrade quando precisar.</p>
+
+  <form method="post" class="form stack">
+    {% csrf_token %}
+    <label>
+      <span>Usuário ou e-mail</span>
+      <input type="text" name="email" id="emailAuto" placeholder="ex: joao" autocomplete="username" required>
+      <small>@app.com será adicionado automaticamente quando não tiver e-mail completo.</small>
+    </label>
+    <label>
+      <span>Senha</span>
+      <input type="password" name="senha" placeholder="Crie uma senha" autocomplete="new-password" required>
+    </label>
+    <label>
+      <span>Confirmar senha</span>
+      <input type="password" name="confirmar" placeholder="Repita a senha" autocomplete="new-password" required>
+    </label>
+    <button class="btn btn-primary" type="submit">Criar conta</button>
+  </form>
+
+  <p class="auth-switch">Já tem conta? <a href="{% url 'core:login' %}">Entrar</a></p>
+</section>
+{% endblock %}

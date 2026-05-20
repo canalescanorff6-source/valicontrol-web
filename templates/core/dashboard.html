@@ -1,0 +1,102 @@
+{% extends 'core/base.html' %}
+{% block title %}Dashboard | ValiControl{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <p class="eyebrow">PAINEL ONLINE</p>
+    <h1>Dashboard</h1>
+    <p class="muted">Resumo rápido dos seus produtos cadastrados e vencimentos.</p>
+  </div>
+  <a class="btn btn-primary" href="{% url 'core:produtos' %}">Adicionar produto</a>
+</header>
+
+{% if stats.trial_expirado %}
+<section class="glass-panel alert-card">
+  <strong>Trial expirado</strong>
+  <span>Você ainda pode acessar o painel e gerar o PIX, mas novos cadastros ficam bloqueados até ativar o PRO.</span>
+  <a class="btn btn-primary" href="{% url 'core:pagar' %}">Ativar PRO</a>
+</section>
+{% elif stats.plano == 'TRIAL' %}
+<section class="glass-panel alert-card subtle">
+  <strong>Plano Trial</strong>
+  <span>Restam {{ stats.trial_restante }} dia(s). O limite atual é {{ stats.limite }} produtos.</span>
+  <a class="btn btn-ghost" href="{% url 'core:pagar' %}">Ver PRO</a>
+</section>
+{% endif %}
+
+<section class="stats-grid">
+  <article class="stat-card glass-panel">
+    <span>Produtos</span>
+    <strong>{{ stats.total }}</strong>
+    <small>{{ stats.total }} / {{ stats.limite }} no plano {{ stats.plano }}</small>
+  </article>
+  <article class="stat-card glass-panel danger">
+    <span>Vencidos</span>
+    <strong>{{ stats.vencidos }}</strong>
+    <small>Produtos fora da validade</small>
+  </article>
+  <article class="stat-card glass-panel warn">
+    <span>Próximos</span>
+    <strong>{{ stats.proximos }}</strong>
+    <small>Vencem em breve</small>
+  </article>
+  <article class="stat-card glass-panel ok">
+    <span>Plano</span>
+    <strong>{{ stats.plano }}</strong>
+    <small>{% if stats.plano == 'PRO' %}Conta ativa{% else %}{{ stats.trial_restante }} dias restantes{% endif %}</small>
+  </article>
+</section>
+
+<section class="glass-panel card-section">
+  <div class="section-title">
+    <div>
+      <h2>Uso do plano</h2>
+      <p class="muted">Acompanhe o limite de cadastro da sua conta.</p>
+    </div>
+    <a class="btn btn-ghost" href="{% url 'core:pagar' %}">Upgrade PRO</a>
+  </div>
+  <div class="progress">
+    <span style="width: {{ stats.uso }}%"></span>
+  </div>
+  <p class="muted tiny">{{ stats.uso }}% usado — {{ stats.total }} de {{ stats.limite }} produtos.</p>
+</section>
+
+<section class="glass-panel card-section">
+  <div class="section-title">
+    <div>
+      <h2>Atenção aos vencimentos</h2>
+      <p class="muted">Produtos vencidos ou próximos do vencimento.</p>
+    </div>
+    <a class="btn btn-ghost" href="{% url 'core:produtos' %}?status=proximo">Ver produtos</a>
+  </div>
+
+  {% if vencimentos %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Nome</th>
+          <th>Validade</th>
+          <th>Qtd</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for p in vencimentos %}
+        <tr>
+          <td>{{ p.codigo }}</td>
+          <td>{{ p.nome }}</td>
+          <td>{{ p.validade }}</td>
+          <td>{{ p.quantidade }} {{ p.tipo_qtd }}</td>
+          <td><span class="badge {{ p.status }}">{{ p.status_label }}</span></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="empty">Nenhum produto vencido ou próximo do vencimento.</div>
+  {% endif %}
+</section>
+{% endblock %}

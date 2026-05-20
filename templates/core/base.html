@@ -1,0 +1,54 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#020617">
+  <title>{% block title %}{{ APP_NAME }}{% endblock %}</title>
+  <link rel="icon" href="{% static 'img/valipro_icon.ico' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <script defer src="{% static 'js/app.js' %}"></script>
+</head>
+<body>
+  <div class="bg-orb orb-a"></div>
+  <div class="bg-orb orb-b"></div>
+
+  {% if request.session.email %}
+  <div class="app-shell">
+    <aside class="sidebar glass-panel">
+      <a href="{% url 'core:dashboard' %}" class="brand">
+        <span class="brand-icon">✓</span>
+        <span>
+          <strong>ValiControl</strong>
+          <small>Controle de validade</small>
+        </span>
+      </a>
+      <nav class="nav">
+        <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'core:dashboard' %}">📊 Dashboard</a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'produtos' %}active{% endif %}" href="{% url 'core:produtos' %}">📦 Produtos</a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'pagar' %}active{% endif %}" href="{% url 'core:pagar' %}">💳 Upgrade PRO</a>
+      </nav>
+      <div class="sidebar-user">
+        <span class="dot"></span>
+        <div>
+          <strong>{{ request.session.usuario|default:'Usuário' }}</strong>
+          <small>{{ request.session.email }}</small>
+        </div>
+      </div>
+      <a class="btn btn-ghost w-full" href="{% url 'core:logout' %}">Sair</a>
+    </aside>
+
+    <main class="content">
+      {% include 'core/partials_messages.html' %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+  {% else %}
+    <main class="auth-page">
+      {% include 'core/partials_messages.html' %}
+      {% block auth %}{% endblock %}
+    </main>
+  {% endif %}
+</body>
+</html>
