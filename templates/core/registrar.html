@@ -1,64 +1,77 @@
 {% extends 'core/base.html' %}
 {% load static %}
-{% block title %}Criar conta | ValiControl{% endblock %}
+{% block title %}Cadastro autorizado | ValiControl{% endblock %}
 {% block auth %}
-<section class="auth-card auth-card-wide glass-panel">
-  <div class="auth-logo">
-    <img src="{% static 'img/logo.png' %}" alt="ValiControl">
+<section class="auth-card auth-card-authorized glass-panel" data-screen="cadastro-autorizado-v3">
+  <div class="auth-layout">
+    <div class="auth-institutional-panel">
+      <div class="auth-logo auth-logo-large">
+        <img src="{% static 'img/logo.png' %}" alt="ValiControl">
+      </div>
+      <p class="eyebrow">CADASTRO PROTEGIDO</p>
+      <h1>Criar conta autorizada</h1>
+      <p class="muted auth-lead">
+        Para manter o ValiControl seguro, novas contas só podem ser criadas com um código numérico enviado ao administrador autorizado.
+      </p>
+
+      <div class="authorization-box">
+        <span class="authorization-kicker">ADMINISTRADOR QUE RECEBE O CÓDIGO</span>
+        <strong>{{ cadastro_autorizacao_email|default:'thiago01268230@gmail.com' }}</strong>
+        <small>O código tem 6 dígitos, expira automaticamente e só pode ser usado uma vez.</small>
+      </div>
+
+      <div class="auth-steps">
+        <div><b>1</b><span>Informe o usuário/e-mail que será autorizado.</span></div>
+        <div><b>2</b><span>Clique em enviar código para o administrador.</span></div>
+        <div><b>3</b><span>Digite o código recebido e finalize a senha.</span></div>
+      </div>
+    </div>
+
+    <div class="auth-form-panel">
+      <div class="status-badge">Autorização obrigatória</div>
+
+      <form method="post" class="form stack auth-mini-form authorization-request-form">
+        {% csrf_token %}
+        <input type="hidden" name="acao" value="solicitar_codigo">
+        <label>
+          <span>Usuário ou e-mail que será autorizado</span>
+          <input type="text" name="email" class="emailAuto" value="{{ codigo_solicitado_para }}" placeholder="ex: joao" autocomplete="username" required>
+          <small>@app.com será adicionado automaticamente quando não tiver e-mail completo.</small>
+        </label>
+        <button class="btn btn-ghost w-full" type="submit">Enviar código para o administrador</button>
+        {% if cadastro_whatsapp_link %}
+          <a class="btn btn-whatsapp w-full" href="{{ cadastro_whatsapp_link }}" target="_blank" rel="noopener">Pedir código pelo WhatsApp autorizado</a>
+        {% endif %}
+      </form>
+
+      <div class="divider-with-text"><span>Depois de receber o código</span></div>
+
+      <form method="post" class="form stack create-authorized-form">
+        {% csrf_token %}
+        <input type="hidden" name="acao" value="criar_conta">
+        <label>
+          <span>Usuário ou e-mail</span>
+          <input type="text" name="email" class="emailAuto" value="{{ codigo_solicitado_para }}" placeholder="ex: joao" autocomplete="username" required>
+          <small>Use o mesmo usuário/e-mail usado para solicitar o código.</small>
+        </label>
+        <label>
+          <span>Código de autorização</span>
+          <input class="authorization-code-input" type="text" name="codigo_autorizacao" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000" autocomplete="one-time-code" required>
+          <small>Digite os 6 números enviados para {{ cadastro_autorizacao_email|default:'o administrador' }}.</small>
+        </label>
+        <label>
+          <span>Senha</span>
+          <input type="password" name="senha" placeholder="Crie uma senha" autocomplete="new-password" required>
+        </label>
+        <label>
+          <span>Confirmar senha</span>
+          <input type="password" name="confirmar" placeholder="Repita a senha" autocomplete="new-password" required>
+        </label>
+        <button class="btn btn-primary" type="submit">Criar conta autorizada</button>
+      </form>
+
+      <p class="auth-switch">Já tem conta? <a href="{% url 'core:login' %}">Entrar</a></p>
+    </div>
   </div>
-  <p class="eyebrow">CADASTRO AUTORIZADO</p>
-  <h1>Criar conta</h1>
-  <p class="muted">Para evitar contas indevidas, a criação de conta agora precisa de um código enviado ao administrador.</p>
-
-  {% if cadastro_autorizacao_obrigatoria %}
-  <div class="auth-note">
-    <strong>Como funciona:</strong>
-    <span>1. Informe o usuário/e-mail e solicite o código.</span>
-    <span>2. O código chega no e-mail autorizado do administrador.</span>
-    <span>3. O administrador repassa o código por e-mail ou WhatsApp.</span>
-  </div>
-
-  <form method="post" class="form stack auth-mini-form">
-    {% csrf_token %}
-    <input type="hidden" name="acao" value="solicitar_codigo">
-    <label>
-      <span>Usuário ou e-mail que será autorizado</span>
-      <input type="text" name="email" class="emailAuto" value="{{ codigo_solicitado_para }}" placeholder="ex: joao" autocomplete="username" required>
-      <small>@app.com será adicionado automaticamente quando não tiver e-mail completo.</small>
-    </label>
-    <button class="btn btn-ghost w-full" type="submit">Enviar código para o administrador</button>
-    {% if cadastro_whatsapp_link %}
-      <a class="btn btn-whatsapp w-full" href="{{ cadastro_whatsapp_link }}" target="_blank" rel="noopener">Pedir código pelo WhatsApp autorizado</a>
-    {% endif %}
-  </form>
-  {% endif %}
-
-  <form method="post" class="form stack">
-    {% csrf_token %}
-    <input type="hidden" name="acao" value="criar_conta">
-    <label>
-      <span>Usuário ou e-mail</span>
-      <input type="text" name="email" class="emailAuto" value="{{ codigo_solicitado_para }}" placeholder="ex: joao" autocomplete="username" required>
-      <small>Use o mesmo usuário/e-mail usado para solicitar o código.</small>
-    </label>
-    {% if cadastro_autorizacao_obrigatoria %}
-    <label>
-      <span>Código de autorização</span>
-      <input type="text" name="codigo_autorizacao" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000" autocomplete="one-time-code" required>
-      <small>O código tem 6 números e expira automaticamente.</small>
-    </label>
-    {% endif %}
-    <label>
-      <span>Senha</span>
-      <input type="password" name="senha" placeholder="Crie uma senha" autocomplete="new-password" required>
-    </label>
-    <label>
-      <span>Confirmar senha</span>
-      <input type="password" name="confirmar" placeholder="Repita a senha" autocomplete="new-password" required>
-    </label>
-    <button class="btn btn-primary" type="submit">Criar conta autorizada</button>
-  </form>
-
-  <p class="auth-switch">Já tem conta? <a href="{% url 'core:login' %}">Entrar</a></p>
 </section>
 {% endblock %}

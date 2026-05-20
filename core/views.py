@@ -71,7 +71,8 @@ def registrar_view(request):
         return redirect('core:dashboard')
 
     context = {
-        'cadastro_autorizacao_obrigatoria': getattr(settings, 'CADASTRO_AUTORIZACAO_OBRIGATORIA', True),
+        'cadastro_autorizacao_obrigatoria': True,
+        'cadastro_autorizacao_email': getattr(settings, 'CADASTRO_AUTORIZACAO_EMAIL', 'thiago01268230@gmail.com'),
         'cadastro_whatsapp_link': whatsapp_authorization_link(),
         'codigo_solicitado_para': '',
     }
@@ -94,7 +95,7 @@ def registrar_view(request):
                 context['cadastro_whatsapp_link'] = resultado.get('whatsapp_link') or context['cadastro_whatsapp_link']
                 messages.success(request, 'Código enviado para o e-mail autorizado do administrador.')
                 messages.info(request, 'Agora peça o código ao administrador pelo e-mail ou WhatsApp autorizado.')
-            return render(request, 'core/registrar.html', context)
+            return _render_registrar_no_cache(request, context)
 
         if senha != confirmar:
             messages.error(request, 'As senhas não coincidem.')
@@ -113,7 +114,15 @@ def registrar_view(request):
                     messages.success(request, 'Conta criada com autorização do administrador.')
                     return redirect('core:dashboard')
 
-    return render(request, 'core/registrar.html', context)
+    return _render_registrar_no_cache(request, context)
+
+
+def _render_registrar_no_cache(request, context):
+    response = render(request, 'core/registrar.html', context)
+    response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
 
 
 def logout_view(request):

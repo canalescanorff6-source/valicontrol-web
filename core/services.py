@@ -223,9 +223,7 @@ def solicitar_codigo_autorizacao(email: str, ip: str = ''):
 
 
 def validar_codigo_autorizacao(email: str, codigo: str):
-    if not getattr(settings, 'CADASTRO_AUTORIZACAO_OBRIGATORIA', True):
-        return {'id': None}, None
-
+    # Nesta versão, o cadastro é sempre protegido por código de autorização.
     email = normalizar_email(email)
     codigo = (codigo or '').strip()
     if not codigo:

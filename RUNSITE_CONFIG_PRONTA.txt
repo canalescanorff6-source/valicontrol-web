@@ -52,3 +52,10 @@ BREVO_SENDER_NAME=ValiControl Web
 DEFAULT_FROM_EMAIL=ValiControl Web <email_verificado_na_brevo>
 
 Fluxo: o usuário solicita o código, o código chega no e-mail autorizado do administrador, e a conta só é criada quando esse código for informado na tela de cadastro.
+
+TELA_CADASTRO_AUTORIZADO_V3
+Depois do redeploy, rode:
+python manage.py verificar_cadastro_codigo
+
+A resposta correta deve terminar com:
+Cadastro por código está ativo na página renderizada.
