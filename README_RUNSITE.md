@@ -89,3 +89,7 @@ BREVO_SENDER_NAME=ValiControl Web
 DEFAULT_FROM_EMAIL=ValiControl Web <canalescanorff6@gmail.com>
 
 Fluxo: o usuário solicita o código, o código chega no e-mail autorizado do administrador, e a conta só é criada quando esse código for informado na tela de cadastro.
+
+## Otimização de imagens
+
+A tela de login/cadastro foi ajustada para usar um logotipo estático feito em CSS, sem carregar a imagem grande do logo. O arquivo `static/img/logo.png` também foi substituído por uma versão leve para evitar lentidão caso alguma página antiga ainda o solicite.

@@ -1,44 +1,80 @@
-VALICONTROL WEB - CONFIGURAÇÃO RUNSITE
+# ValiControl Web Premium
 
-Root Directory:
-(deixe vazio se manage.py estiver na raiz do GitHub)
+Versão web do ValiControl para rodar no RunSite, substituindo o executável por acesso via navegador.
+
+## O que já vem pronto
+
+- Login e criação de conta trial.
+- Dashboard premium e responsivo.
+- Cadastro, edição e exclusão de produtos.
+- Filtro por vencidos, próximos e OK.
+- Busca por produto/código.
+- Preenchimento automático por código/GTIN usando `data/dados.xlsx`.
+- Índice leve `data/dados.sqlite3` já gerado para não estourar memória no RunSite.
+- Importação XLSX/CSV de estoque com validade e quantidade.
+- Exportação XLSX/CSV.
+- Plano Trial e bloqueio de limite.
+- Upgrade PRO com PIX via Asaas.
+- Webhook Asaas em `/webhook/asaas/`.
+- Comando manual para ativar PRO.
+- Scripts `build.sh`, `runsite_start.sh` e `Procfile` prontos.
+
+## RunSite
 
 Build Command:
+
+```bash
 bash build.sh
+```
 
 Start Command:
+
+```bash
 bash runsite_start.sh
+```
 
-Port:
-automática/em branco. O projeto usa $PORT.
+Porta: deixe automático/em branco. O start usa `$PORT`.
 
-Environment Variables principais:
-SECRET_KEY=cole_uma_chave_grande_aqui
-DEBUG=False
-RUNSITE=True
-DATABASE_URL=cole_a_url_do_neon_aqui
-ASAAS_API_KEY=cole_a_chave_do_asaas_aqui
+## Variáveis obrigatórias
+
+```env
+SECRET_KEY=gere_uma_chave_segura
+DATABASE_URL=sua_url_postgresql_ou_neon
+ASAAS_API_KEY=sua_chave_asaas
 ALLOWED_HOSTS=valicontrol-web.runsite.app,.runsite.app,localhost,127.0.0.1
 CSRF_TRUSTED_ORIGINS=https://valicontrol-web.runsite.app,https://*.runsite.app
-SECURE_SSL_REDIRECT=False
-SESSION_COOKIE_SECURE=True
-CSRF_COOKIE_SECURE=True
-WEB_CONCURRENCY=1
-GUNICORN_THREADS=2
+DEBUG=False
+RUNSITE=True
+```
 
-IMPORTANTE:
-- Suba o conteúdo extraído, não o ZIP fechado.
-- O arquivo manage.py deve ficar na raiz do repositório.
-- A pasta data/ deve subir junto, incluindo dados.xlsx e dados.sqlite3.
-- Se o site não abrir, abra primeiro:
-  https://valicontrol-web.runsite.app/health/
-- Se /health/ não abrir, veja os logs de Deploy/Runtime do RunSite.
+## Webhook Asaas
 
-Catálogo de códigos:
-O arquivo data/dados.sqlite3 já vai pronto para não travar o RunSite no start.
-Se ele não estiver no GitHub, o site abre, mas a busca automática por GTIN pode não funcionar.
-Para recriar manualmente no terminal do RunSite:
-python manage.py indexar_catalogo --force
+Configure no Asaas:
+
+```text
+https://valicontrol-web.runsite.app/webhook/asaas/
+```
+
+Eventos importantes:
+
+```text
+PAYMENT_RECEIVED
+PAYMENT_CONFIRMED
+```
+
+## Diagnóstico
+
+```bash
+python manage.py diagnosticar_runsite
+python manage.py indexar_catalogo --skip-if-ready
+python manage.py shell -c "from core.services import carregar_catalogo_produtos; c=carregar_catalogo_produtos(); print(len(c)); print(c.get('7898082113571'))"
+```
+
+## Ativar conta manualmente
+
+```bash
+python manage.py ativar_pro usuario@email.com --dias 30
+```
 
 
 Cadastro protegido por código:
@@ -54,9 +90,6 @@ DEFAULT_FROM_EMAIL=ValiControl Web <canalescanorff6@gmail.com>
 
 Fluxo: o usuário solicita o código, o código chega no e-mail autorizado do administrador, e a conta só é criada quando esse código for informado na tela de cadastro.
 
-TELA_CADASTRO_AUTORIZADO_V3
-Depois do redeploy, rode:
-python manage.py verificar_cadastro_codigo
+## Otimização de imagens
 
-A resposta correta deve terminar com:
-Cadastro por código está ativo na página renderizada.
+A tela de login/cadastro foi ajustada para usar um logotipo estático feito em CSS, sem carregar a imagem grande do logo. O arquivo `static/img/logo.png` também foi substituído por uma versão leve para evitar lentidão caso alguma página antiga ainda o solicite.

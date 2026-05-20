@@ -76,7 +76,73 @@ button, input, select, textarea { font: inherit; }
   margin-bottom: 1.3rem;
   overflow: hidden;
 }
-.auth-logo img { width: 76%; height: 76%; object-fit: contain; }
+.auth-logo-static {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 30% 22%, rgba(56, 189, 248, .35), transparent 1.7rem),
+    linear-gradient(145deg, rgba(15, 23, 42, .98), rgba(14, 165, 233, .18));
+  box-shadow: 0 20px 55px rgba(56, 189, 248, .12), inset 0 1px 0 rgba(255,255,255,.08);
+}
+.auth-logo-static::before {
+  content: "VC";
+  position: absolute;
+  left: .72rem;
+  bottom: .55rem;
+  color: #e2e8f0;
+  font-size: .78rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+.logo-calendar {
+  width: 42px;
+  height: 38px;
+  border-radius: 10px;
+  border: 3px solid rgba(226, 232, 240, .92);
+  background:
+    linear-gradient(to bottom, #2563eb 0 26%, #f8fafc 26% 100%);
+  box-shadow: 0 10px 28px rgba(2, 6, 23, .34);
+  position: relative;
+}
+.logo-calendar::before,
+.logo-calendar::after {
+  content: "";
+  position: absolute;
+  top: -8px;
+  width: 7px;
+  height: 14px;
+  border-radius: 999px;
+  background: #f8fafc;
+}
+.logo-calendar::before { left: 9px; }
+.logo-calendar::after { right: 9px; }
+.logo-calendar span { display: none; }
+.logo-check {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #22c55e, #84cc16);
+  color: #ffffff;
+  font-weight: 950;
+  border: 3px solid rgba(15, 23, 42, .95);
+  box-shadow: 0 14px 28px rgba(34, 197, 94, .18);
+}
+.auth-logo-large .logo-calendar {
+  width: 46px;
+  height: 42px;
+}
+.auth-logo-large .logo-check {
+  width: 32px;
+  height: 32px;
+  right: 13px;
+  bottom: 13px;
+}
+
 .auth-card h1, .page-header h1 {
   margin: 0.25rem 0;
   font-size: clamp(1.8rem, 4vw, 2.6rem);
