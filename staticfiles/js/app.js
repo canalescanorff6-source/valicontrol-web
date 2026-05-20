@@ -3,7 +3,7 @@
     emailInput.addEventListener('blur', () => {
       const value = emailInput.value.trim();
       if (value && !value.includes('@')) {
-        emailInput.value = value + '@app.com';
+        emailInput.value = value + '@validade.app';
       }
     });
   });

@@ -45,7 +45,7 @@ def gerar_token() -> str:
 def normalizar_email(valor: str) -> str:
     valor = (valor or '').strip().lower()
     if valor and '@' not in valor:
-        valor = f'{valor}@app.com'
+        valor = f'{valor}@validade.app'
     return valor
 
 
