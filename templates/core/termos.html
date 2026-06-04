@@ -1,0 +1,22 @@
+{% extends 'core/base.html' %}
+{% block title %}Termos de uso | ValiControl{% endblock %}
+{% block auth %}
+<section class="auth-screen glass-panel terms-public-card">
+  <div class="auth-showcase terms-content-card">
+    <p class="eyebrow">TERMOS SIMPLES</p>
+    <h1>Termos de uso do ValiControl</h1>
+    <p class="muted">O ValiControl é uma ferramenta auxiliar para controle de produtos, lotes e vencimentos.</p>
+    <div class="faq-list terms-list">
+      <details open><summary>Responsabilidade dos dados</summary><p>O usuário é responsável por conferir código, lote, validade, quantidade, localização e demais informações cadastradas no sistema.</p></details>
+      <details open><summary>Controle de validade</summary><p>O sistema ajuda a organizar vencimentos, mas a conferência física dos produtos e a tomada de decisão final continuam sendo responsabilidade do usuário.</p></details>
+      <details open><summary>Pagamentos e plano PRO</summary><p>Quando o pagamento for manual por Pix, a liberação do plano PRO ocorre após conferência do comprovante pela equipe responsável.</p></details>
+      <details open><summary>Segurança</summary><p>O acesso usa login e cadastro protegido por código. Não compartilhe sua senha nem o código de autorização com pessoas não autorizadas.</p></details>
+    </div>
+    <p class="auth-switch"><a href="{% url 'core:login' %}">Voltar para o login</a></p>
+  </div>
+</section>
+{% endblock %}
+{% block content %}
+<header class="page-header page-header-enhanced"><div><p class="eyebrow">TERMOS SIMPLES</p><h1>Termos de uso</h1><p class="muted">O ValiControl é uma ferramenta auxiliar para controle de validades.</p></div></header>
+<section class="glass-panel card-section"><div class="faq-list terms-list"><details open><summary>Responsabilidade dos dados</summary><p>O usuário é responsável por conferir código, lote, validade, quantidade, localização e demais informações cadastradas.</p></details><details open><summary>Controle de validade</summary><p>O sistema ajuda a organizar vencimentos, mas a conferência física e decisão final continuam sendo do usuário.</p></details><details open><summary>Pagamentos</summary><p>A liberação do PRO por Pix manual acontece após conferência do comprovante.</p></details></div></section>
+{% endblock %}

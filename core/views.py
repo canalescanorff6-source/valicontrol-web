@@ -39,6 +39,8 @@ from .services import (
     validar_codigo_autorizacao,
     marcar_codigo_autorizacao_usado,
     whatsapp_authorization_link,
+    obter_config,
+    salvar_config,
 )
 
 
@@ -248,7 +250,14 @@ def produtos_view(request):
             atualizado_em=datetime.now(),
         )
         registrar_log(conta.email, 'produto_adicionado_web')
-        messages.success(request, 'Produto adicionado com sucesso.')
+        
+        status_novo = produto_status(validade)
+        if status_novo == 'vencido':
+            messages.warning(request, 'Produto cadastrado, mas a validade informada já está vencida. Confira se a data está correta.')
+        elif status_novo == 'proximo':
+            messages.warning(request, 'Produto cadastrado. Atenção: ele está próximo do vencimento.')
+        else:
+            messages.success(request, 'Produto cadastrado com sucesso.')
         return redirect('core:produtos')
 
     busca = (request.GET.get('q') or '').strip()
@@ -268,7 +277,7 @@ def produtos_view(request):
         qs = qs.filter(validade__gt=limite_proximo)
 
     qs = qs.order_by('validade', 'nome')
-    paginator = Paginator(qs, 50)
+    paginator = Paginator(qs, int(getattr(settings, 'PAGINACAO_PRODUTOS', 25)))
     page_obj = paginator.get_page(request.GET.get('page'))
     produtos = [montar_produto_dict(p) for p in page_obj.object_list]
 
@@ -405,7 +414,7 @@ def importar_produtos_view(request):
 
 
 def _whatsapp_link_pagamento(conta_email: str) -> str:
-    numero = re.sub(r'\D+', '', getattr(settings, 'PIX_WHATSAPP', '') or getattr(settings, 'CADASTRO_AUTORIZACAO_WHATSAPP', '') or '')
+    numero = re.sub(r'\D+', '', obter_config('PIX_WHATSAPP', getattr(settings, 'CADASTRO_AUTORIZACAO_WHATSAPP', '')) or '')
     if not numero:
         return ''
     if not numero.startswith('55') and len(numero) in (10, 11):
@@ -417,18 +426,25 @@ def _whatsapp_link_pagamento(conta_email: str) -> str:
     return f'https://wa.me/{numero}?text={urllib.parse.quote(msg)}'
 
 
+
+def _parse_valor_monetario(valor, padrao=100.00):
+    try:
+        return float(str(valor).strip().replace('.', '').replace(',', '.') if ',' in str(valor) else str(valor).strip())
+    except Exception:
+        return float(padrao)
+
 def _pagamento_manual_context(conta_email: str) -> dict:
-    chave = (getattr(settings, 'PIX_CHAVE', '') or '').strip()
-    titular = (getattr(settings, 'PIX_TITULAR', '') or '').strip()
+    chave = (obter_config('PIX_CHAVE', '') or '').strip()
+    titular = (obter_config('PIX_TITULAR', '') or '').strip()
     pix_configurado = bool(chave and titular)
     return {
         'modo': getattr(settings, 'PAGAMENTO_MODO', 'manual_pix'),
         'chave': chave,
         'titular': titular,
         'pix_configurado': pix_configurado,
-        'valor': getattr(settings, 'PIX_VALOR', 100.00),
-        'descricao': getattr(settings, 'PAGAMENTO_DESCRICAO', 'Plano ValiControl PRO'),
-        'observacao': getattr(settings, 'PIX_OBSERVACAO', 'Após o pagamento, envie o comprovante pelo WhatsApp para a equipe liberar o PRO.'),
+        'valor': _parse_valor_monetario(obter_config('PIX_VALOR', getattr(settings, 'PIX_VALOR', 100.00)), 100.00),
+        'descricao': obter_config('PAGAMENTO_DESCRICAO', getattr(settings, 'PAGAMENTO_DESCRICAO', 'Plano ValiControl PRO')),
+        'observacao': obter_config('PIX_OBSERVACAO', getattr(settings, 'PIX_OBSERVACAO', 'Após o pagamento, envie o comprovante pelo WhatsApp para a equipe liberar o PRO.')),
         'whatsapp_link': _whatsapp_link_pagamento(conta_email),
         'conta_email': conta_email,
     }
@@ -457,6 +473,55 @@ def pagar_view(request):
         'pagamento_manual': pagamento_manual,
         'modo_pagamento': modo_pagamento,
         'stats': estatisticas(conta),
+    })
+
+
+@require_login
+def ajuda_view(request):
+    conta = get_conta_por_email(request.session.get('email'))
+    if not conta:
+        request.session.flush()
+        return redirect('core:login')
+    return render(request, 'core/ajuda.html', {'conta': conta, 'stats': estatisticas(conta)})
+
+
+def termos_view(request):
+    return render(request, 'core/termos.html')
+
+
+@require_login
+def configuracoes_view(request):
+    conta_atual = get_conta_por_email(request.session.get('email'))
+    if not _is_admin_user(conta_atual.email if conta_atual else ''):
+        messages.error(request, 'Área restrita ao administrador do ValiControl.')
+        return redirect('core:dashboard')
+
+    chaves = [
+        'PIX_CHAVE',
+        'PIX_TITULAR',
+        'PIX_WHATSAPP',
+        'PIX_VALOR',
+        'PAGAMENTO_DESCRICAO',
+        'PIX_OBSERVACAO',
+        'CADASTRO_EMAIL_TRAVADO',
+        'CADASTRO_AUTORIZACAO_WHATSAPP',
+        'TRIAL_DIAS',
+        'TRIAL_LIMITE_PRODUTOS',
+        'VENCIMENTO_PROXIMO_DIAS',
+    ]
+
+    if request.method == 'POST':
+        for chave in chaves:
+            salvar_config(chave, request.POST.get(chave, ''))
+        registrar_log(conta_atual.email, 'configuracoes_atualizadas')
+        messages.success(request, 'Configurações salvas com sucesso.')
+        return redirect('core:configuracoes')
+
+    valores = {chave: obter_config(chave, getattr(settings, chave, '')) for chave in chaves}
+    return render(request, 'core/configuracoes.html', {
+        'conta': conta_atual,
+        'valores': valores,
+        'stats': estatisticas(conta_atual),
     })
 
 
@@ -568,7 +633,7 @@ def vencimentos_view(request):
     qs = Produto.objects.filter(user_email=conta.email)
     qs = _aplicar_busca(qs, busca)
     qs = _periodo_queryset(qs, periodo).order_by('validade', 'nome')
-    paginator = Paginator(qs, 50)
+    paginator = Paginator(qs, int(getattr(settings, 'PAGINACAO_PRODUTOS', 25)))
     page_obj = paginator.get_page(request.GET.get('page'))
     produtos = [montar_produto_dict(p) for p in page_obj.object_list]
 
@@ -720,7 +785,7 @@ def admin_contas_view(request):
     qs = Conta.objects.all().order_by('-id')
     if busca:
         qs = qs.filter(email__icontains=busca)
-    paginator = Paginator(qs, 50)
+    paginator = Paginator(qs, int(getattr(settings, 'PAGINACAO_PRODUTOS', 25)))
     page_obj = paginator.get_page(request.GET.get('page'))
     contas = []
     for conta in page_obj.object_list:
@@ -729,11 +794,21 @@ def admin_contas_view(request):
             'stats': estatisticas(conta),
             'produtos': Produto.objects.filter(user_email=conta.email).count(),
         })
+    total_contas = Conta.objects.count()
+    contas_pro = Conta.objects.filter(ativo=1).count()
+    contas_trial = max(0, total_contas - contas_pro)
+    total_produtos = Produto.objects.count()
     return render(request, 'core/admin_contas.html', {
         'conta': conta_atual,
         'contas': contas,
         'page_obj': page_obj,
         'busca': busca,
+        'admin_stats': {
+            'total_contas': total_contas,
+            'contas_pro': contas_pro,
+            'contas_trial': contas_trial,
+            'total_produtos': total_produtos,
+        },
     })
 
 

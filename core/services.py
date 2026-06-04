@@ -25,10 +25,51 @@ from django.db.models import Count, Q
 from django.contrib.auth.hashers import make_password, check_password, identify_hasher
 from openpyxl import load_workbook, Workbook
 
-from .models import Conta, Produto, BaixaEstoque
+from .models import Conta, Produto, BaixaEstoque, ConfiguracaoSistema
 
 logger = logging.getLogger(__name__)
 _catalogo_tls = threading.local()
+
+
+def obter_config(chave: str, padrao: str = '') -> str:
+    """Lê uma configuração salva no painel Admin. Se não existir, usa variável do RunSite."""
+    chave = (chave or '').strip()
+    if not chave:
+        return padrao
+    try:
+        item = ConfiguracaoSistema.objects.filter(chave=chave).first()
+        if item and item.valor not in (None, ''):
+            return str(item.valor)
+    except Exception:
+        pass
+    return str(getattr(settings, chave, os.getenv(chave, padrao)) or padrao)
+
+
+def salvar_config(chave: str, valor: str) -> None:
+    chave = (chave or '').strip()
+    if not chave:
+        return
+    try:
+        obj = ConfiguracaoSistema(chave=chave, valor=str(valor or ''), atualizado_em=datetime.now())
+        obj.save()
+    except Exception:
+        # Fallback para bancos onde o ORM não consiga fazer upsert por causa de tabela gerenciada manualmente.
+        with connection.cursor() as cursor:
+            if connection.vendor == 'postgresql':
+                cursor.execute(
+                    """
+                    INSERT INTO configuracoes_sistema (chave, valor, atualizado_em)
+                    VALUES (%s, %s, NOW())
+                    ON CONFLICT (chave) DO UPDATE SET valor=EXCLUDED.valor, atualizado_em=NOW()
+                    """,
+                    [chave, str(valor or '')],
+                )
+            else:
+                cursor.execute(
+                    "INSERT OR REPLACE INTO configuracoes_sistema (chave, valor, atualizado_em) VALUES (%s, %s, CURRENT_TIMESTAMP)",
+                    [chave, str(valor or '')],
+                )
+
 
 
 

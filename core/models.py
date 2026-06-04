@@ -81,3 +81,16 @@ class BaixaEstoque(models.Model):
     class Meta:
         managed = False
         db_table = 'baixas_estoque'
+
+
+class ConfiguracaoSistema(models.Model):
+    chave = models.TextField(primary_key=True)
+    valor = models.TextField(null=True, blank=True)
+    atualizado_em = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = 'configuracoes_sistema'
+
+    def __str__(self):
+        return self.chave

@@ -97,3 +97,32 @@ Depois do deploy, teste:
 ```bash
 python manage.py diagnosticar_performance
 ```
+
+## ValiControl v2.1 Final
+
+Após o deploy, rode:
+
+```bash
+python manage.py init_db
+python manage.py diagnosticar_runsite
+```
+
+Novas páginas:
+
+- `/ajuda/` — guia de uso para o usuário.
+- `/termos/` — termos simples de uso.
+- `/configuracoes/` — configurações do dono/administrador.
+- `/admin-contas/` — gerenciamento de clientes, trial e PRO.
+
+Variáveis recomendadas:
+
+```env
+PAGAMENTO_MODO=manual_pix
+PIX_CHAVE=sua_chave_pix
+PIX_TITULAR=Seu nome ou empresa
+PIX_WHATSAPP=5598996127032
+ADMIN_EMAILS=thiago01268230@gmail.com
+PAGINACAO_PRODUTOS=25
+GUNICORN_THREADS=4
+WEB_CONCURRENCY=1
+```

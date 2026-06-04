@@ -49,10 +49,18 @@
           <span class="nav-ico">⌗</span>
           <span>Etiquetas</span>
         </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'ajuda' %}active{% endif %}" href="{% url 'core:ajuda' %}">
+          <span class="nav-ico">?</span>
+          <span>Ajuda</span>
+        </a>
         {% if usuario_admin %}
         <a class="nav-link {% if request.resolver_match.url_name == 'admin_contas' %}active{% endif %}" href="{% url 'core:admin_contas' %}">
           <span class="nav-ico">⚙</span>
           <span>Admin</span>
+        </a>
+        <a class="nav-link {% if request.resolver_match.url_name == 'configuracoes' %}active{% endif %}" href="{% url 'core:configuracoes' %}">
+          <span class="nav-ico">⚒</span>
+          <span>Configurações</span>
         </a>
         {% endif %}
         <a class="nav-link {% if request.resolver_match.url_name == 'pagar' %}active{% endif %}" href="{% url 'core:pagar' %}">
@@ -79,6 +87,7 @@
           </div>
         </div>
         <a class="btn btn-ghost w-full" href="{% url 'core:logout' %}">Sair</a>
+        <a class="sidebar-terms-link" href="{% url 'core:termos' %}">Termos de uso</a>
       </div>
     </aside>
 

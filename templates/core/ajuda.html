@@ -1,0 +1,67 @@
+{% extends 'core/base.html' %}
+{% block title %}Ajuda | ValiControl{% endblock %}
+{% block topbar_title %}Ajuda e guia rápido{% endblock %}
+{% block content %}
+<header class="page-header page-header-enhanced">
+  <div>
+    <p class="eyebrow">COMO USAR</p>
+    <h1>Ajuda do ValiControl</h1>
+    <p class="muted">Um guia simples para usar o sistema de validades sem confusão.</p>
+  </div>
+  <a class="btn btn-primary" href="{% url 'core:produtos' %}">Cadastrar produto</a>
+</header>
+
+<section class="help-grid">
+  <article class="glass-panel card-section help-card">
+    <span class="help-number">1</span>
+    <h2>Cadastre pelo código/GTIN</h2>
+    <p class="muted">Digite o código de barras do produto. Quando o código existir na base interna, o nome é preenchido automaticamente.</p>
+  </article>
+  <article class="glass-panel card-section help-card">
+    <span class="help-number">2</span>
+    <h2>Informe lote e validade</h2>
+    <p class="muted">O mesmo produto pode ter vários lotes e validades diferentes. Por isso lote, validade, quantidade e localização devem ser conferidos pelo usuário.</p>
+  </article>
+  <article class="glass-panel card-section help-card">
+    <span class="help-number">3</span>
+    <h2>Acompanhe vencimentos</h2>
+    <p class="muted">Use a tela Vencimentos para ver itens vencidos, que vencem hoje e próximos de vencer nos próximos dias.</p>
+  </article>
+  <article class="glass-panel card-section help-card">
+    <span class="help-number">4</span>
+    <h2>Dê baixa no estoque</h2>
+    <p class="muted">Registre vendas, uso, descarte, perdas ou retirada por validade. Isso mantém a quantidade real sempre atualizada.</p>
+  </article>
+</section>
+
+<section class="glass-panel card-section">
+  <div class="section-title">
+    <div>
+      <h2>Rotina recomendada</h2>
+      <p class="muted">Use este passo a passo diariamente ou sempre que entrar produto novo.</p>
+    </div>
+  </div>
+  <div class="checklist-panel">
+    <div><b>✓</b><span>Cadastre todos os produtos recebidos com código, lote, validade e quantidade.</span></div>
+    <div><b>✓</b><span>Confira o dashboard para verificar vencidos e próximos vencimentos.</span></div>
+    <div><b>✓</b><span>Use filtros por período na tela Vencimentos.</span></div>
+    <div><b>✓</b><span>Gere relatórios quando precisar revisar perdas ou produtos em risco.</span></div>
+    <div><b>✓</b><span>Imprima etiquetas quando quiser identificar produtos, lotes e validade.</span></div>
+  </div>
+</section>
+
+<section class="glass-panel card-section">
+  <div class="section-title">
+    <div>
+      <h2>Dúvidas rápidas</h2>
+      <p class="muted">Respostas para evitar erros comuns.</p>
+    </div>
+  </div>
+  <div class="faq-list">
+    <details open><summary>Por que lote não vem automático?</summary><p>Lote muda conforme entrada, fabricação e compra. A base de código identifica o produto, mas o lote real precisa ser informado pelo usuário.</p></details>
+    <details><summary>O que significa “próximo”?</summary><p>São produtos dentro do período configurado em “VENCIMENTO_PROXIMO_DIAS”, normalmente 30 dias.</p></details>
+    <details><summary>Posso importar planilha?</summary><p>Sim. Use a importação para carregar estoque com código, nome, lote, validade, quantidade, categoria, fornecedor e localização.</p></details>
+    <details><summary>Quem libera o plano PRO?</summary><p>A equipe responsável confere o comprovante Pix e ativa a conta pelo painel administrativo.</p></details>
+  </div>
+</section>
+{% endblock %}

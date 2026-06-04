@@ -1517,3 +1517,163 @@ html, body {
   }
   .label-card-print span, .label-card-print small { color: #111827 !important; }
 }
+
+/* ValiControl v2.1 acabamento final */
+.sidebar-terms-link {
+  display: block;
+  text-align: center;
+  color: var(--muted-2);
+  font-size: .78rem;
+  margin-top: .7rem;
+}
+.help-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.help-card { position: relative; min-height: 210px; }
+.help-card h2 { margin-top: .8rem; }
+.help-number {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  color: #041120;
+  background: linear-gradient(135deg, #36c7ff, #4ade80);
+  font-weight: 950;
+  box-shadow: 0 12px 26px rgba(54,199,255,.18);
+}
+.checklist-panel {
+  display: grid;
+  gap: .75rem;
+}
+.checklist-panel div {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: .8rem;
+  align-items: center;
+  padding: .85rem;
+  border-radius: 16px;
+  background: rgba(2, 10, 22, .42);
+  border: 1px solid rgba(124, 155, 196, .1);
+}
+.checklist-panel b {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: #041120;
+  background: linear-gradient(135deg, #36c7ff, #4ade80);
+}
+.faq-list { display: grid; gap: .75rem; }
+.faq-list details {
+  padding: .95rem 1rem;
+  border-radius: 18px;
+  background: rgba(2, 10, 22, .42);
+  border: 1px solid rgba(124, 155, 196, .12);
+}
+.faq-list summary { cursor: pointer; font-weight: 900; color: var(--text); }
+.faq-list p { margin: .7rem 0 0; color: var(--muted); line-height: 1.55; }
+.terms-public-card { width: min(820px, 100%); }
+.terms-content-card { max-width: none; }
+.settings-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(300px, .8fr);
+  gap: 1rem;
+}
+.settings-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .85rem;
+  margin-bottom: 1rem;
+}
+.settings-fields label {
+  display: grid;
+  gap: .45rem;
+  color: #d6e2f0;
+  font-size: .92rem;
+}
+.settings-fields .wide { grid-column: 1 / -1; }
+.admin-action-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
+}
+.admin-action-stack form { margin: 0; }
+.admin-table td:last-child { min-width: 330px; }
+.payment-empty { min-height: 110px; }
+
+/* Correções de responsividade e sobreposição */
+.app-shell { align-items: start; }
+.workspace { min-width: 0; }
+.dashboard-grid,
+.products-layout,
+.pay-grid,
+.modern-pay-grid,
+.settings-grid {
+  align-items: start;
+}
+.dashboard-side-col { min-width: 0; }
+.card-section, .metric-card, .stat-card, .glass-panel { min-width: 0; }
+.table-wrap { max-width: 100%; }
+.product-form-v2 { grid-template-columns: repeat(4, minmax(150px, 1fr)); }
+.product-form-v2 .wide { grid-column: span 2; }
+.product-form-v2 button[type="submit"] { min-height: 54px; }
+.baixa-inline-form { min-width: 250px; }
+
+@media (max-width: 1320px) {
+  .dashboard-grid,
+  .products-layout,
+  .pay-grid,
+  .modern-pay-grid,
+  .settings-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .dashboard-side-col {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: grid;
+  }
+  .product-form-v2 { grid-template-columns: repeat(3, minmax(150px, 1fr)); }
+}
+
+@media (max-width: 980px) {
+  .help-grid,
+  .metrics-grid-dashboard,
+  .metrics-grid-products,
+  .stats-grid,
+  .dashboard-side-col {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .product-form-v2,
+  .settings-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .product-form-v2 .wide { grid-column: span 2; }
+  .admin-table td:last-child { min-width: 260px; }
+}
+
+@media (max-width: 640px) {
+  .app-shell { width: 100%; min-height: 100vh; padding: .6rem; }
+  .auth-page { padding: .6rem; }
+  .help-grid,
+  .metrics-grid-dashboard,
+  .metrics-grid-products,
+  .stats-grid,
+  .dashboard-side-col,
+  .product-form-v2,
+  .settings-fields {
+    grid-template-columns: 1fr !important;
+  }
+  .product-form-v2 .wide,
+  .settings-fields .wide { grid-column: auto; }
+  .card-section { padding: 1rem; }
+  .page-header h1 { font-size: 2.2rem; }
+  .topbar-meta, .header-actions { width: 100%; }
+  .header-actions .btn { flex: 1; }
+  .admin-action-stack { flex-direction: column; }
+  .admin-action-stack .btn { width: 100%; }
+  .messages { position: static; max-width: 100%; margin-bottom: 1rem; }
+}

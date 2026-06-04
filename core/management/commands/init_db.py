@@ -76,6 +76,14 @@ POSTGRES_SQL = [
         criado_em TIMESTAMP DEFAULT NOW()
     )
     """,
+
+    """
+    CREATE TABLE IF NOT EXISTS configuracoes_sistema (
+        chave TEXT PRIMARY KEY,
+        valor TEXT,
+        atualizado_em TIMESTAMP DEFAULT NOW()
+    )
+    """,
 ]
 
 SQLITE_SQL = [
@@ -152,6 +160,13 @@ SQLITE_SQL = [
         criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """,
+    """
+    CREATE TABLE IF NOT EXISTS configuracoes_sistema (
+        chave TEXT PRIMARY KEY,
+        valor TEXT,
+        atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """,
 ]
 
 POSTGRES_INDEXES = [
@@ -164,6 +179,7 @@ POSTGRES_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_codigos_autorizacao_expira ON codigos_autorizacao (expira_em)",
     "CREATE INDEX IF NOT EXISTS idx_baixas_user_produto ON baixas_estoque (user_email, produto_id)",
     "CREATE INDEX IF NOT EXISTS idx_baixas_user_criado ON baixas_estoque (user_email, criado_em)",
+    "CREATE INDEX IF NOT EXISTS idx_configuracoes_chave ON configuracoes_sistema (chave)",
 ]
 
 SQLITE_INDEXES = POSTGRES_INDEXES

@@ -1,0 +1,28 @@
+VALICONTROL WEB v2.1 FINAL
+
+Incluído nesta versão:
+- Tela Ajuda / Como usar.
+- Página de Termos simples.
+- Tela Configurações para o administrador alterar Pix, WhatsApp, trial, limite e dias de vencimento sem mexer no RunSite.
+- Admin mais organizado com cards, busca e botões de PRO por 30, 90 e 365 dias.
+- Mensagens mais claras no cadastro de produto.
+- Pagamento Pix manual sem mostrar informações técnicas ao usuário.
+- Layout responsivo revisado para reduzir sobreposição em dashboard, produtos e telas pequenas.
+- Paginação mais leve.
+- Banco init_db atualizado com tabela configuracoes_sistema.
+
+Depois de subir no GitHub e fazer Redeploy no RunSite:
+python manage.py init_db
+python manage.py diagnosticar_runsite
+
+Configurações recomendadas no RunSite:
+PAGAMENTO_MODO=manual_pix
+PIX_CHAVE=sua_chave_pix
+PIX_TITULAR=Seu nome ou empresa
+PIX_WHATSAPP=5598996127032
+ADMIN_EMAILS=thiago01268230@gmail.com
+PAGINACAO_PRODUTOS=25
+GUNICORN_THREADS=4
+WEB_CONCURRENCY=1
+
+A tela Configurações também permite trocar vários desses dados dentro do sistema.

@@ -1,0 +1,39 @@
+{% extends 'core/base.html' %}
+{% block title %}Configurações | ValiControl{% endblock %}
+{% block topbar_title %}Configurações do sistema{% endblock %}
+{% block content %}
+<header class="page-header page-header-enhanced">
+  <div>
+    <p class="eyebrow">ÁREA DO DONO</p>
+    <h1>Configurações</h1>
+    <p class="muted">Ajuste Pix, WhatsApp, plano e regras principais sem precisar mexer nas variáveis do RunSite.</p>
+  </div>
+</header>
+
+<form method="post" class="settings-grid">
+  {% csrf_token %}
+  <section class="glass-panel card-section">
+    <div class="section-title compact"><div><h2>Pagamento Pix</h2><p class="muted">Dados exibidos para o cliente na tela do plano PRO.</p></div></div>
+    <div class="settings-fields">
+      <label><span>Chave Pix</span><input type="text" name="PIX_CHAVE" value="{{ valores.PIX_CHAVE }}" placeholder="CPF, e-mail, telefone ou chave aleatória"></label>
+      <label><span>Titular Pix</span><input type="text" name="PIX_TITULAR" value="{{ valores.PIX_TITULAR }}" placeholder="Nome do titular"></label>
+      <label><span>WhatsApp para comprovante</span><input type="text" name="PIX_WHATSAPP" value="{{ valores.PIX_WHATSAPP }}" placeholder="5598999999999"></label>
+      <label><span>Valor do plano</span><input type="text" name="PIX_VALOR" value="{{ valores.PIX_VALOR }}" placeholder="100.00"></label>
+      <label><span>Descrição do pagamento</span><input type="text" name="PAGAMENTO_DESCRICAO" value="{{ valores.PAGAMENTO_DESCRICAO }}" placeholder="Plano ValiControl PRO"></label>
+      <label class="wide"><span>Observação para o cliente</span><textarea name="PIX_OBSERVACAO" placeholder="Mensagem exibida na tela de pagamento">{{ valores.PIX_OBSERVACAO }}</textarea></label>
+    </div>
+  </section>
+
+  <section class="glass-panel card-section">
+    <div class="section-title compact"><div><h2>Cadastro e plano</h2><p class="muted">Regras principais do acesso e do trial.</p></div></div>
+    <div class="settings-fields">
+      <label><span>E-mail que recebe código</span><input type="email" name="CADASTRO_EMAIL_TRAVADO" value="{{ valores.CADASTRO_EMAIL_TRAVADO }}"></label>
+      <label><span>WhatsApp de autorização</span><input type="text" name="CADASTRO_AUTORIZACAO_WHATSAPP" value="{{ valores.CADASTRO_AUTORIZACAO_WHATSAPP }}"></label>
+      <label><span>Dias do trial</span><input type="number" name="TRIAL_DIAS" value="{{ valores.TRIAL_DIAS }}"></label>
+      <label><span>Limite de produtos no trial</span><input type="number" name="TRIAL_LIMITE_PRODUTOS" value="{{ valores.TRIAL_LIMITE_PRODUTOS }}"></label>
+      <label><span>Considerar próximo vencimento em dias</span><input type="number" name="VENCIMENTO_PROXIMO_DIAS" value="{{ valores.VENCIMENTO_PROXIMO_DIAS }}"></label>
+    </div>
+    <button class="btn btn-primary btn-lg" type="submit">Salvar configurações</button>
+  </section>
+</form>
+{% endblock %}

@@ -2,14 +2,66 @@
 {% block title %}Admin | ValiControl{% endblock %}
 {% block topbar_title %}Administração de contas{% endblock %}
 {% block content %}
-<header class="page-header page-header-enhanced"><div><p class="eyebrow">ÁREA DO DONO</p><h1>Contas do sistema</h1><p class="muted">Ative PRO, acompanhe trial e veja a quantidade de produtos por cliente.</p></div></header>
+<header class="page-header page-header-enhanced">
+  <div>
+    <p class="eyebrow">ÁREA DO DONO</p>
+    <h1>Painel administrativo</h1>
+    <p class="muted">Controle clientes, planos, trial, contas PRO e dados gerais do sistema.</p>
+  </div>
+  <a class="btn btn-primary" href="{% url 'core:configuracoes' %}">Abrir configurações</a>
+</header>
+
+<section class="metrics-grid metrics-grid-products">
+  <article class="metric-card glass-panel metric-neutral"><span class="metric-label">Contas</span><strong>{{ admin_stats.total_contas }}</strong><small>Total cadastrado</small></article>
+  <article class="metric-card glass-panel metric-success"><span class="metric-label">PRO</span><strong>{{ admin_stats.contas_pro }}</strong><small>Contas liberadas</small></article>
+  <article class="metric-card glass-panel metric-warn"><span class="metric-label">Trial</span><strong>{{ admin_stats.contas_trial }}</strong><small>Contas em teste</small></article>
+  <article class="metric-card glass-panel metric-neutral"><span class="metric-label">Produtos</span><strong>{{ admin_stats.total_produtos }}</strong><small>Produtos cadastrados</small></article>
+</section>
+
 <section class="glass-panel card-section">
-  <form method="get" class="filters filters-modern"><input type="search" name="q" value="{{ busca }}" placeholder="Buscar conta por e-mail..."><button class="btn btn-ghost" type="submit">Buscar</button></form>
-  {% if contas %}<div class="table-wrap"><table class="table table-products"><thead><tr><th>ID</th><th>Conta</th><th>Plano</th><th>Produtos</th><th>Trial</th><th>Ações</th></tr></thead><tbody>
-    {% for item in contas %}<tr>
-      <td>{{ item.conta.id }}</td><td>{{ item.conta.email }}</td><td><span class="pill">{{ item.stats.plano }}</span></td><td>{{ item.produtos }}</td><td>{{ item.stats.trial_restante }} dia(s)</td>
-      <td class="actions"><form method="post" action="{% url 'core:admin_ativar_pro' item.conta.id %}">{% csrf_token %}<input type="hidden" name="dias" value="30"><button class="btn btn-primary btn-sm" type="submit">PRO 30 dias</button></form><form method="post" action="{% url 'core:admin_bloquear' item.conta.id %}">{% csrf_token %}<button class="btn btn-ghost btn-sm" type="submit">Voltar Trial</button></form></td>
-    </tr>{% endfor %}
-  </tbody></table></div>{% else %}<div class="empty">Nenhuma conta encontrada.</div>{% endif %}
+  <div class="section-title">
+    <div><h2>Contas do sistema</h2><p class="muted">Ative, renove ou volte contas para trial.</p></div>
+  </div>
+  <form method="get" class="filters filters-modern">
+    <input type="search" name="q" value="{{ busca }}" placeholder="Buscar conta por e-mail...">
+    <button class="btn btn-ghost" type="submit">Buscar</button>
+  </form>
+
+  {% if contas %}
+  <div class="table-wrap">
+    <table class="table table-products admin-table">
+      <thead><tr><th>ID</th><th>Conta</th><th>Plano</th><th>Produtos</th><th>Trial</th><th>Ações</th></tr></thead>
+      <tbody>
+        {% for item in contas %}
+        <tr>
+          <td>{{ item.conta.id }}</td>
+          <td><div class="product-main-info"><strong>{{ item.conta.email }}</strong><small>IP: {{ item.conta.ip|default:'-' }}</small></div></td>
+          <td><span class="pill">{{ item.stats.plano }}</span></td>
+          <td>{{ item.produtos }}</td>
+          <td>{{ item.stats.trial_restante }} dia(s)</td>
+          <td>
+            <div class="admin-action-stack">
+              <form method="post" action="{% url 'core:admin_ativar_pro' item.conta.id %}">{% csrf_token %}<input type="hidden" name="dias" value="30"><button class="btn btn-primary btn-sm" type="submit">PRO 30 dias</button></form>
+              <form method="post" action="{% url 'core:admin_ativar_pro' item.conta.id %}">{% csrf_token %}<input type="hidden" name="dias" value="90"><button class="btn btn-ghost btn-sm" type="submit">PRO 90 dias</button></form>
+              <form method="post" action="{% url 'core:admin_ativar_pro' item.conta.id %}">{% csrf_token %}<input type="hidden" name="dias" value="365"><button class="btn btn-ghost btn-sm" type="submit">PRO 1 ano</button></form>
+              <form method="post" action="{% url 'core:admin_bloquear' item.conta.id %}">{% csrf_token %}<button class="btn btn-ghost btn-sm" type="submit">Voltar Trial</button></form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">Nenhuma conta encontrada.</div>
+  {% endif %}
+
+  {% if page_obj and page_obj.paginator.num_pages > 1 %}
+  <div class="pagination-bar">
+    {% if page_obj.has_previous %}<a class="btn btn-ghost" href="?q={{ busca|urlencode }}&page={{ page_obj.previous_page_number }}">Anterior</a>{% endif %}
+    <span class="muted">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a class="btn btn-ghost" href="?q={{ busca|urlencode }}&page={{ page_obj.next_page_number }}">Próxima</a>{% endif %}
+  </div>
+  {% endif %}
 </section>
 {% endblock %}
