@@ -7,6 +7,7 @@ import os
 import re
 import sqlite3
 import tempfile
+import threading
 import uuid
 import secrets
 import urllib.parse
@@ -20,12 +21,15 @@ from io import BytesIO, StringIO
 import requests
 from django.conf import settings
 from django.db import connection
+from django.db.models import Count, Q
 from django.contrib.auth.hashers import make_password, check_password, identify_hasher
 from openpyxl import load_workbook, Workbook
 
 from .models import Conta, Produto, BaixaEstoque
 
 logger = logging.getLogger(__name__)
+_catalogo_tls = threading.local()
+
 
 
 def hash_senha_antiga(senha: str) -> str:
@@ -362,22 +366,26 @@ def produtos_do_usuario(email: str):
 
 
 def estatisticas(conta: Conta) -> dict:
-    # Lê só a coluna de validade em vez de carregar todos os produtos completos.
-    # Isso deixa dashboard e produtos rápidos mesmo com muitos registros.
-    qs = Produto.objects.filter(user_email=conta.email).values_list('validade', flat=True)
-    total = 0
-    vencidos = 0
-    proximos = 0
-    ok = 0
-    for validade in qs.iterator(chunk_size=1000):
-        total += 1
-        status = produto_status(validade)
-        if status == 'vencido':
-            vencidos += 1
-        elif status == 'proximo':
-            proximos += 1
-        elif status == 'ok':
-            ok += 1
+    """Estatísticas rápidas do painel.
+
+    A versão anterior percorria todos os produtos em Python. Em hospedagem web
+    isso fica lento quando a conta começa a ter muitos registros. Agora o banco
+    calcula os totais com COUNT filtrado, aproveitando os índices criados pelo
+    init_db.
+    """
+    hoje = date.today().isoformat()
+    limite_proximo = (date.today() + timedelta(days=settings.VENCIMENTO_PROXIMO_DIAS)).isoformat()
+    qs = Produto.objects.filter(user_email=conta.email)
+    dados = qs.aggregate(
+        total=Count('id'),
+        vencidos=Count('id', filter=Q(validade__lt=hoje)),
+        proximos=Count('id', filter=Q(validade__gte=hoje, validade__lte=limite_proximo)),
+        ok=Count('id', filter=Q(validade__gt=limite_proximo)),
+    )
+    total = int(dados.get('total') or 0)
+    vencidos = int(dados.get('vencidos') or 0)
+    proximos = int(dados.get('proximos') or 0)
+    ok = int(dados.get('ok') or 0)
     limite = limite_produtos(conta)
     uso = min(100, int((total / max(1, limite)) * 100))
     expirado = conta_trial_expirado(conta)
@@ -470,6 +478,7 @@ def _excel_signature(path: Path) -> dict:
     }
 
 
+@lru_cache(maxsize=1)
 def catalogo_index_pronto() -> bool:
     """Verificação rápida do índice do catálogo.
 
@@ -675,6 +684,12 @@ def indexar_catalogo_produtos(force: bool = False) -> int:
         conn.close()
 
     os.replace(temp_path, db_path)
+    try:
+        catalogo_index_pronto.cache_clear()
+        carregar_catalogo_produtos.cache_clear()
+        buscar_catalogo.cache_clear()
+    except Exception:
+        pass
     return total
 
 
@@ -693,11 +708,43 @@ class CatalogoProdutos:
                 'Catálogo ainda não indexado. Envie data/dados.sqlite3 ou rode: python manage.py indexar_catalogo --force'
             )
 
-    def _fetchone(self, sql: str, params=()):
+    def _conn(self):
+        """Conexão SQLite de leitura reaproveitada por thread.
+
+        Abrir o dados.sqlite3 a cada tecla digitada deixava a busca por GTIN
+        lenta no RunSite. A conexão abaixo é somente leitura e fica cacheada por
+        thread do Gunicorn, reduzindo bastante o tempo de resposta.
+        """
         self._ensure_ready()
-        with _sqlite_connect(self.db_path, readonly=True) as conn:
+        path_key = str(self.db_path)
+        conn = getattr(_catalogo_tls, 'catalogo_conn', None)
+        conn_path = getattr(_catalogo_tls, 'catalogo_path', None)
+        if conn is None or conn_path != path_key:
+            uri = f'file:{self.db_path}?mode=ro&immutable=1'
+            conn = sqlite3.connect(uri, uri=True, timeout=5)
             conn.row_factory = sqlite3.Row
-            return conn.execute(sql, params).fetchone()
+            try:
+                conn.execute('PRAGMA query_only=ON')
+                conn.execute('PRAGMA temp_store=MEMORY')
+            except Exception:
+                pass
+            _catalogo_tls.catalogo_conn = conn
+            _catalogo_tls.catalogo_path = path_key
+        return conn
+
+    def _fetchone(self, sql: str, params=()):
+        try:
+            return self._conn().execute(sql, params).fetchone()
+        except sqlite3.Error:
+            # Se a plataforma reciclou o arquivo/conexão, recria uma vez.
+            try:
+                old_conn = getattr(_catalogo_tls, 'catalogo_conn', None)
+                if old_conn is not None:
+                    old_conn.close()
+            except Exception:
+                pass
+            _catalogo_tls.catalogo_conn = None
+            return self._conn().execute(sql, params).fetchone()
 
     def total_produtos(self) -> int:
         try:
@@ -741,12 +788,10 @@ class CatalogoProdutos:
         return item
 
     def items(self):
-        self._ensure_ready()
-        with _sqlite_connect(self.db_path, readonly=True) as conn:
-            conn.row_factory = sqlite3.Row
-            for row in conn.execute('SELECT codigo, nome, gtin FROM catalogo_produtos ORDER BY id'):
-                chave = row['gtin'] or row['codigo'] or ''
-                yield chave, {'codigo': row['codigo'] or '', 'nome': row['nome'] or '', 'gtin': row['gtin'] or ''}
+        conn = self._conn()
+        for row in conn.execute('SELECT codigo, nome, gtin FROM catalogo_produtos ORDER BY id'):
+            chave = row['gtin'] or row['codigo'] or ''
+            yield chave, {'codigo': row['codigo'] or '', 'nome': row['nome'] or '', 'gtin': row['gtin'] or ''}
 
 
 @lru_cache(maxsize=1)
@@ -754,7 +799,7 @@ def carregar_catalogo_produtos():
     return CatalogoProdutos()
 
 
-@lru_cache(maxsize=4096)
+@lru_cache(maxsize=20000)
 def buscar_catalogo(codigo: str):
     # Cache pequeno para deixar leituras repetidas instantâneas, sem carregar
     # todo o catálogo na memória.

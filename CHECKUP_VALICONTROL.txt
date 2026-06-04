@@ -66,3 +66,14 @@ Automática/em branco.
 - Mensagens/toasts deixam de ficar por cima da tela.
 - Mensagens agora aparecem no fluxo normal da página.
 - Cadastro ficou mais compacto para evitar que botões/campos fiquem escondidos em telas menores.
+
+OTIMIZAÇÃO DE VELOCIDADE APLICADA
+- O catálogo SQLite agora usa conexão de leitura reaproveitada por thread.
+- A busca por código/GTIN tem cache no servidor e no navegador.
+- O dashboard calcula totais diretamente no banco, sem percorrer todos os produtos em Python.
+- A API /api/produto-lookup/ retorna Cache-Control para acelerar buscas repetidas.
+- Novo comando: python manage.py diagnosticar_performance
+
+RECOMENDAÇÃO NO RUNSITE
+WEB_CONCURRENCY=1
+GUNICORN_THREADS=4

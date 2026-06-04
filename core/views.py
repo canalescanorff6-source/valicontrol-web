@@ -352,11 +352,21 @@ def excluir_produto_view(request, produto_id):
 
 @require_login
 def produto_lookup_api(request):
-    codigo = request.GET.get('codigo', '')
+    codigo = (request.GET.get('codigo', '') or '').strip()
+    # Evita consulta desnecessária a cada tecla muito curta.
+    if len(codigo) < 3:
+        response = JsonResponse({'found': False})
+        response['Cache-Control'] = 'private, max-age=60'
+        return response
     data = buscar_catalogo(codigo)
     if not data:
-        return JsonResponse({'found': False})
-    return JsonResponse({'found': True, **data})
+        response = JsonResponse({'found': False})
+        response['Cache-Control'] = 'private, max-age=3600'
+        return response
+    response = JsonResponse({'found': True, **data})
+    # Ajuda o navegador a repetir buscas recentes sem bater de novo no servidor.
+    response['Cache-Control'] = 'private, max-age=86400'
+    return response
 
 
 @require_login

@@ -82,3 +82,18 @@ python manage.py verificar_cadastro_codigo
 python manage.py diagnosticar_email
 python manage.py diagnosticar_email --teste teste@validade.app
 ```
+
+## Performance
+
+Para deixar a resposta mais rápida no RunSite, use:
+
+```env
+WEB_CONCURRENCY=1
+GUNICORN_THREADS=4
+```
+
+Depois do deploy, teste:
+
+```bash
+python manage.py diagnosticar_performance
+```
