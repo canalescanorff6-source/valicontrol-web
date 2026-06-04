@@ -1,50 +1,33 @@
 {% extends 'core/base.html' %}
 {% block title %}Editar produto | ValiControl{% endblock %}
-{% block topbar_title %}Edição de produto{% endblock %}
+{% block topbar_title %}Edição de produto/lote{% endblock %}
 {% block content %}
 <header class="page-header page-header-enhanced">
   <div>
     <p class="eyebrow">EDIÇÃO DE CADASTRO</p>
-    <h1>Editar produto</h1>
-    <p class="muted">Atualize os dados do item selecionado e mantenha o controle de validade sempre correto.</p>
+    <h1>Editar produto/lote</h1>
+    <p class="muted">Atualize lote, validade, quantidade, fornecedor, local e demais dados do produto.</p>
   </div>
   <a class="btn btn-ghost" href="{% url 'core:produtos' %}">Voltar para produtos</a>
 </header>
 
 <section class="glass-panel card-section">
-  <div class="section-title">
-    <div>
-      <h2>Dados do produto</h2>
-      <p class="muted">Revise código, nome, validade, quantidade e tipo.</p>
-    </div>
-  </div>
-  <form method="post" class="product-form edit-form edit-form-modern">
+  <div class="section-title"><div><h2>Dados do produto</h2><p class="muted">Todos os campos abaixo ajudam a organizar melhor seu controle de validade.</p></div></div>
+  <form method="post" class="product-form product-form-v2 edit-form-modern">
     {% csrf_token %}
-    <label>
-      <span>Código/GTIN</span>
-      <input type="text" name="codigo" id="codigoProduto" value="{{ produto.codigo }}" required>
-    </label>
-    <label class="wide">
-      <span>Nome</span>
-      <input type="text" name="nome" id="nomeProduto" value="{{ produto.nome }}" required>
-    </label>
-    <label>
-      <span>Validade</span>
-      <input type="date" name="validade" value="{{ produto.validade }}" required>
-    </label>
-    <label>
-      <span>Quantidade</span>
-      <input type="number" name="quantidade" min="0" step="1" value="{{ produto.quantidade }}" required>
-    </label>
-    <label>
-      <span>Tipo</span>
-      <select name="tipo_qtd">
-        {% for tipo in tipos_qtd %}
-          <option value="{{ tipo }}" {% if produto.tipo_qtd == tipo %}selected{% endif %}>{{ tipo }}</option>
-        {% endfor %}
-      </select>
-    </label>
+    <label><span>Código/GTIN</span><input type="text" name="codigo" id="codigoProduto" value="{{ produto.codigo }}" required></label>
+    <label class="wide"><span>Nome</span><input type="text" name="nome" id="nomeProduto" value="{{ produto.nome }}" required></label>
+    <label><span>Lote</span><input type="text" name="lote" value="{{ produto.lote|default:'' }}" placeholder="Ex: LT2506-A"></label>
+    <label><span>Categoria</span><input type="text" name="categoria" value="{{ produto.categoria|default:'' }}" list="categorias" placeholder="Alimentos"></label>
+    <label><span>Fornecedor</span><input type="text" name="fornecedor" value="{{ produto.fornecedor|default:'' }}" placeholder="Fornecedor/marca"></label>
+    <label><span>Localização</span><input type="text" name="localizacao" value="{{ produto.localizacao|default:'' }}" placeholder="Estoque A / Prateleira 3"></label>
+    <label><span>Validade</span><input type="date" name="validade" value="{{ produto.validade }}" required></label>
+    <label><span>Quantidade</span><input type="number" name="quantidade" min="0" step="1" value="{{ produto.quantidade }}" required></label>
+    <label><span>Tipo</span><select name="tipo_qtd">{% for tipo in tipos_qtd %}<option value="{{ tipo }}" {% if produto.tipo_qtd == tipo %}selected{% endif %}>{{ tipo }}</option>{% endfor %}</select></label>
+    <label><span>Valor un.</span><input type="text" name="valor_unitario" value="{{ produto.valor_unitario|default:'0' }}" placeholder="0,00"></label>
+    <label class="wide"><span>Observação</span><input type="text" name="observacao" value="{{ produto.observacao|default:'' }}" placeholder="Observação interna"></label>
     <button class="btn btn-primary" type="submit">Salvar alterações</button>
   </form>
+  <datalist id="categorias">{% for c in categorias_sugeridas %}<option value="{{ c }}">{% endfor %}</datalist>
 </section>
 {% endblock %}

@@ -12,8 +12,10 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.conf import settings
+from openpyxl import Workbook
+from io import BytesIO
 
-from .models import Produto
+from .models import Produto, BaixaEstoque, Conta
 from .services import (
     autenticar,
     buscar_catalogo,
@@ -203,6 +205,12 @@ def produtos_view(request):
         validade = request.POST.get('validade', '').strip()
         quantidade = request.POST.get('quantidade', '0').strip()
         tipo_qtd = request.POST.get('tipo_qtd', 'Un').strip() or 'Un'
+        lote = request.POST.get('lote', '').strip()
+        categoria = request.POST.get('categoria', '').strip()
+        fornecedor = request.POST.get('fornecedor', '').strip()
+        localizacao = request.POST.get('localizacao', '').strip()
+        observacao = request.POST.get('observacao', '').strip()
+        valor_raw = request.POST.get('valor_unitario', '0').strip().replace(',', '.')
 
         try:
             datetime.strptime(validade, '%Y-%m-%d')
@@ -216,10 +224,11 @@ def produtos_view(request):
 
         try:
             quantidade_int = int(float(quantidade))
+            valor_unitario = max(0, float(valor_raw or 0))
             if quantidade_int < 0:
                 raise ValueError
         except Exception:
-            messages.error(request, 'Quantidade inválida.')
+            messages.error(request, 'Quantidade ou valor inválido.')
             return redirect('core:produtos')
 
         Produto.objects.create(
@@ -229,6 +238,14 @@ def produtos_view(request):
             quantidade=quantidade_int,
             tipo_qtd=tipo_qtd,
             user_email=conta.email,
+            lote=lote,
+            categoria=categoria,
+            fornecedor=fornecedor,
+            localizacao=localizacao,
+            observacao=observacao,
+            valor_unitario=valor_unitario,
+            criado_em=datetime.now(),
+            atualizado_em=datetime.now(),
         )
         registrar_log(conta.email, 'produto_adicionado_web')
         messages.success(request, 'Produto adicionado com sucesso.')
@@ -239,7 +256,7 @@ def produtos_view(request):
 
     qs = Produto.objects.filter(user_email=conta.email)
     if busca:
-        qs = qs.filter(Q(codigo__icontains=busca) | Q(nome__icontains=busca))
+        qs = qs.filter(Q(codigo__icontains=busca) | Q(nome__icontains=busca) | Q(lote__icontains=busca) | Q(categoria__icontains=busca) | Q(fornecedor__icontains=busca) | Q(localizacao__icontains=busca))
 
     hoje = date.today().isoformat()
     limite_proximo = (date.today() + timedelta(days=settings.VENCIMENTO_PROXIMO_DIAS)).isoformat()
@@ -264,6 +281,8 @@ def produtos_view(request):
         'busca': busca,
         'filtro': filtro,
         'tipos_qtd': ['Un', 'Cx', 'Kg', 'L', 'Pct', 'Fardo'],
+        'categorias_sugeridas': ['Alimentos', 'Bebidas', 'Limpeza', 'Medicamentos', 'Cosméticos', 'Perecíveis', 'Outros'],
+        'baixa_motivos': _motivos_baixa(),
     })
 
 
@@ -278,14 +297,21 @@ def editar_produto_view(request, produto_id):
         validade = request.POST.get('validade', '').strip()
         quantidade = request.POST.get('quantidade', '0').strip()
         tipo_qtd = request.POST.get('tipo_qtd', 'Un').strip() or 'Un'
+        lote = request.POST.get('lote', '').strip()
+        categoria = request.POST.get('categoria', '').strip()
+        fornecedor = request.POST.get('fornecedor', '').strip()
+        localizacao = request.POST.get('localizacao', '').strip()
+        observacao = request.POST.get('observacao', '').strip()
+        valor_raw = request.POST.get('valor_unitario', '0').strip().replace(',', '.')
 
         try:
             datetime.strptime(validade, '%Y-%m-%d')
             quantidade_int = int(float(quantidade))
+            valor_unitario = max(0, float(valor_raw or 0))
             if quantidade_int < 0:
                 raise ValueError
         except Exception:
-            messages.error(request, 'Confira a validade e a quantidade.')
+            messages.error(request, 'Confira a validade, quantidade e valor.')
             return redirect('core:editar_produto', produto_id=produto.id)
 
         produto.codigo = codigo
@@ -293,6 +319,13 @@ def editar_produto_view(request, produto_id):
         produto.validade = validade
         produto.quantidade = quantidade_int
         produto.tipo_qtd = tipo_qtd
+        produto.lote = lote
+        produto.categoria = categoria
+        produto.fornecedor = fornecedor
+        produto.localizacao = localizacao
+        produto.observacao = observacao
+        produto.valor_unitario = valor_unitario
+        produto.atualizado_em = datetime.now()
         produto.save()
         registrar_log(conta.email, 'produto_editado_web')
         messages.success(request, 'Produto atualizado.')
@@ -302,6 +335,7 @@ def editar_produto_view(request, produto_id):
         'conta': conta,
         'produto': produto,
         'tipos_qtd': ['Un', 'Cx', 'Kg', 'L', 'Pct', 'Fardo'],
+        'categorias_sugeridas': ['Alimentos', 'Bebidas', 'Limpeza', 'Medicamentos', 'Cosméticos', 'Perecíveis', 'Outros'],
     })
 
 
@@ -473,3 +507,246 @@ def health_view(request):
     except Exception as exc:
         status = {'ok': False, 'erro': str(exc)}
     return JsonResponse(status, status=200 if status.get('ok') else 500)
+
+
+def _motivos_baixa():
+    return ['Vendido', 'Usado', 'Descartado', 'Perda', 'Doado', 'Retirado por validade', 'Ajuste de estoque']
+
+
+def _periodo_queryset(qs, periodo: str):
+    hoje = date.today()
+    hoje_iso = hoje.isoformat()
+    if periodo == 'vencidos':
+        return qs.filter(validade__lt=hoje_iso)
+    if periodo == 'hoje':
+        return qs.filter(validade=hoje_iso)
+    if periodo in {'7', '15', '30'}:
+        limite = (hoje + timedelta(days=int(periodo))).isoformat()
+        return qs.filter(validade__gte=hoje_iso, validade__lte=limite)
+    if periodo == 'em_dia':
+        limite = (hoje + timedelta(days=settings.VENCIMENTO_PROXIMO_DIAS)).isoformat()
+        return qs.filter(validade__gt=limite)
+    return qs
+
+
+def _aplicar_busca(qs, busca: str):
+    if not busca:
+        return qs
+    return qs.filter(
+        Q(codigo__icontains=busca) |
+        Q(nome__icontains=busca) |
+        Q(lote__icontains=busca) |
+        Q(categoria__icontains=busca) |
+        Q(fornecedor__icontains=busca) |
+        Q(localizacao__icontains=busca)
+    )
+
+
+@require_login
+def vencimentos_view(request):
+    conta = get_conta_por_email(request.session.get('email'))
+    if not conta:
+        request.session.flush()
+        return redirect('core:login')
+
+    busca = (request.GET.get('q') or '').strip()
+    periodo = (request.GET.get('periodo') or '30').strip().lower()
+    qs = Produto.objects.filter(user_email=conta.email)
+    qs = _aplicar_busca(qs, busca)
+    qs = _periodo_queryset(qs, periodo).order_by('validade', 'nome')
+    paginator = Paginator(qs, 50)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    produtos = [montar_produto_dict(p) for p in page_obj.object_list]
+
+    return render(request, 'core/vencimentos.html', {
+        'conta': conta,
+        'stats': estatisticas(conta),
+        'produtos': produtos,
+        'page_obj': page_obj,
+        'busca': busca,
+        'periodo': periodo,
+        'periodos': [
+            ('todos', 'Todos'),
+            ('vencidos', 'Vencidos'),
+            ('hoje', 'Vencem hoje'),
+            ('7', 'Próximos 7 dias'),
+            ('15', 'Próximos 15 dias'),
+            ('30', 'Próximos 30 dias'),
+            ('em_dia', 'Em dia'),
+        ],
+    })
+
+
+@require_login
+@require_POST
+def baixa_produto_view(request, produto_id):
+    conta = get_conta_por_email(request.session.get('email'))
+    produto = get_object_or_404(Produto, id=produto_id, user_email=conta.email)
+    try:
+        quantidade = int(float((request.POST.get('quantidade_baixa') or '0').replace(',', '.')))
+        if quantidade <= 0:
+            raise ValueError
+    except Exception:
+        messages.error(request, 'Informe uma quantidade válida para dar baixa.')
+        return redirect(request.POST.get('next') or 'core:produtos')
+
+    motivo = request.POST.get('motivo_baixa', 'Retirada').strip() or 'Retirada'
+    observacao = request.POST.get('observacao_baixa', '').strip()
+    quantidade_final = max(0, (produto.quantidade or 0) - quantidade)
+    quantidade_real = min(quantidade, produto.quantidade or 0)
+    produto.quantidade = quantidade_final
+    produto.atualizado_em = datetime.now()
+    produto.save(update_fields=['quantidade', 'atualizado_em'])
+    BaixaEstoque.objects.create(
+        produto_id=produto.id,
+        user_email=conta.email,
+        quantidade=quantidade_real,
+        motivo=motivo,
+        observacao=observacao,
+        criado_em=datetime.now(),
+    )
+    registrar_log(conta.email, f'baixa_estoque_{produto.id}_{quantidade_real}')
+    messages.success(request, f'Baixa registrada: {quantidade_real} {produto.tipo_qtd or "Un"} de {produto.nome}.')
+    return redirect(request.POST.get('next') or 'core:produtos')
+
+
+@require_login
+def relatorios_view(request):
+    conta = get_conta_por_email(request.session.get('email'))
+    if not conta:
+        request.session.flush()
+        return redirect('core:login')
+    produtos = list(Produto.objects.filter(user_email=conta.email).order_by('validade', 'nome'))
+    itens = [montar_produto_dict(p) for p in produtos]
+    stats = estatisticas(conta)
+
+    por_categoria = {}
+    valor_risco = 0.0
+    for item in itens:
+        cat = item['categoria'] or 'Sem categoria'
+        por_categoria.setdefault(cat, {'categoria': cat, 'total': 0, 'vencidos': 0, 'proximos': 0, 'valor_risco': 0.0})
+        por_categoria[cat]['total'] += 1
+        if item['status'] == 'vencido':
+            por_categoria[cat]['vencidos'] += 1
+            por_categoria[cat]['valor_risco'] += item['valor_total']
+            valor_risco += item['valor_total']
+        elif item['status'] == 'proximo':
+            por_categoria[cat]['proximos'] += 1
+            por_categoria[cat]['valor_risco'] += item['valor_total']
+            valor_risco += item['valor_total']
+
+    baixas = list(BaixaEstoque.objects.filter(user_email=conta.email).order_by('-criado_em')[:25])
+    total_baixado = sum(int(b.quantidade or 0) for b in baixas)
+
+    return render(request, 'core/relatorios.html', {
+        'conta': conta,
+        'stats': stats,
+        'valor_risco': round(valor_risco, 2),
+        'por_categoria': sorted(por_categoria.values(), key=lambda x: (-x['vencidos'], -x['proximos'], x['categoria'])),
+        'baixas': baixas,
+        'total_baixado': total_baixado,
+    })
+
+
+@require_login
+def exportar_relatorio_view(request):
+    conta = get_conta_por_email(request.session.get('email'))
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Relatório'
+    ws.append(['Produto', 'Código', 'Lote', 'Categoria', 'Fornecedor', 'Localização', 'Validade', 'Quantidade', 'Tipo', 'Valor total', 'Status'])
+    for produto in Produto.objects.filter(user_email=conta.email).order_by('validade', 'nome'):
+        item = montar_produto_dict(produto)
+        ws.append([item['nome'], item['codigo'], item['lote'], item['categoria'], item['fornecedor'], item['localizacao'], item['validade'], item['quantidade'], item['tipo_qtd'], item['valor_total'], item['status_label']])
+    for col in ws.columns:
+        max_len = max(len(str(cell.value or '')) for cell in col)
+        ws.column_dimensions[col[0].column_letter].width = min(max_len + 3, 52)
+    bio = BytesIO()
+    wb.save(bio)
+    response = HttpResponse(bio.getvalue(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="valicontrol-relatorio.xlsx"'
+    return response
+
+
+@require_login
+def etiquetas_view(request):
+    conta = get_conta_por_email(request.session.get('email'))
+    if not conta:
+        request.session.flush()
+        return redirect('core:login')
+    busca = (request.GET.get('q') or '').strip()
+    ids = request.GET.getlist('id')
+    qs = Produto.objects.filter(user_email=conta.email)
+    if ids:
+        qs = qs.filter(id__in=ids)
+    qs = _aplicar_busca(qs, busca).order_by('validade', 'nome')[:80]
+    produtos = [montar_produto_dict(p) for p in qs]
+    return render(request, 'core/etiquetas.html', {
+        'conta': conta,
+        'produtos': produtos,
+        'busca': busca,
+        'stats': estatisticas(conta),
+    })
+
+
+def _is_admin_user(email: str) -> bool:
+    email = (email or '').strip().lower()
+    admin_raw = getattr(settings, 'ADMIN_EMAILS', '') or getattr(settings, 'CRIADOR_ADMIN_EMAILS', '') or getattr(settings, 'CADASTRO_EMAIL_TRAVADO', '') or getattr(settings, 'CADASTRO_AUTORIZACAO_EMAIL', '')
+    admins = {item.strip().lower() for item in re.split(r'[,;\s]+', str(admin_raw)) if item.strip()}
+    return bool(email and email in admins)
+
+
+@require_login
+def admin_contas_view(request):
+    conta_atual = get_conta_por_email(request.session.get('email'))
+    if not _is_admin_user(conta_atual.email if conta_atual else ''):
+        messages.error(request, 'Área restrita ao administrador do ValiControl.')
+        return redirect('core:dashboard')
+    busca = (request.GET.get('q') or '').strip()
+    qs = Conta.objects.all().order_by('-id')
+    if busca:
+        qs = qs.filter(email__icontains=busca)
+    paginator = Paginator(qs, 50)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    contas = []
+    for conta in page_obj.object_list:
+        contas.append({
+            'conta': conta,
+            'stats': estatisticas(conta),
+            'produtos': Produto.objects.filter(user_email=conta.email).count(),
+        })
+    return render(request, 'core/admin_contas.html', {
+        'conta': conta_atual,
+        'contas': contas,
+        'page_obj': page_obj,
+        'busca': busca,
+    })
+
+
+@require_login
+@require_POST
+def admin_ativar_pro_view(request, conta_id):
+    conta_atual = get_conta_por_email(request.session.get('email'))
+    if not _is_admin_user(conta_atual.email if conta_atual else ''):
+        messages.error(request, 'Área restrita ao administrador do ValiControl.')
+        return redirect('core:dashboard')
+    conta = get_object_or_404(Conta, id=conta_id)
+    dias = int(request.POST.get('dias') or 30)
+    ativar_usuario(conta.email, dias=dias)
+    messages.success(request, f'Conta {conta.email} ativada como PRO por {dias} dias.')
+    return redirect('core:admin_contas')
+
+
+@require_login
+@require_POST
+def admin_bloquear_view(request, conta_id):
+    conta_atual = get_conta_por_email(request.session.get('email'))
+    if not _is_admin_user(conta_atual.email if conta_atual else ''):
+        messages.error(request, 'Área restrita ao administrador do ValiControl.')
+        return redirect('core:dashboard')
+    conta = get_object_or_404(Conta, id=conta_id)
+    conta.ativo = 0
+    conta.plano = 'trial'
+    conta.save(update_fields=['ativo', 'plano'])
+    messages.success(request, f'Conta {conta.email} voltou para TRIAL.')
+    return redirect('core:admin_contas')

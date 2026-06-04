@@ -23,9 +23,17 @@ POSTGRES_SQL = [
         codigo TEXT,
         nome TEXT,
         validade TEXT,
-        quantidade INTEGER,
+        quantidade INTEGER DEFAULT 0,
         tipo_qtd TEXT DEFAULT 'Un',
-        user_email TEXT
+        user_email TEXT,
+        lote TEXT,
+        categoria TEXT,
+        fornecedor TEXT,
+        localizacao TEXT,
+        observacao TEXT,
+        valor_unitario DOUBLE PRECISION DEFAULT 0,
+        criado_em TIMESTAMP DEFAULT NOW(),
+        atualizado_em TIMESTAMP DEFAULT NOW()
     )
     """,
     """
@@ -45,7 +53,6 @@ POSTGRES_SQL = [
         criado_em TIMESTAMP DEFAULT NOW()
     )
     """,
-
     """
     CREATE TABLE IF NOT EXISTS codigos_autorizacao (
         id SERIAL PRIMARY KEY,
@@ -56,6 +63,17 @@ POSTGRES_SQL = [
         criado_em TIMESTAMP DEFAULT NOW(),
         expira_em TIMESTAMP,
         usado_em TIMESTAMP
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS baixas_estoque (
+        id SERIAL PRIMARY KEY,
+        produto_id INTEGER,
+        user_email TEXT,
+        quantidade INTEGER DEFAULT 0,
+        motivo TEXT DEFAULT 'retirada',
+        observacao TEXT,
+        criado_em TIMESTAMP DEFAULT NOW()
     )
     """,
 ]
@@ -81,9 +99,17 @@ SQLITE_SQL = [
         codigo TEXT,
         nome TEXT,
         validade TEXT,
-        quantidade INTEGER,
+        quantidade INTEGER DEFAULT 0,
         tipo_qtd TEXT DEFAULT 'Un',
-        user_email TEXT
+        user_email TEXT,
+        lote TEXT,
+        categoria TEXT,
+        fornecedor TEXT,
+        localizacao TEXT,
+        observacao TEXT,
+        valor_unitario REAL DEFAULT 0,
+        criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """,
     """
@@ -103,7 +129,6 @@ SQLITE_SQL = [
         criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """,
-
     """
     CREATE TABLE IF NOT EXISTS codigos_autorizacao (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -116,23 +141,32 @@ SQLITE_SQL = [
         usado_em TIMESTAMP
     )
     """,
+    """
+    CREATE TABLE IF NOT EXISTS baixas_estoque (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        produto_id INTEGER,
+        user_email TEXT,
+        quantidade INTEGER DEFAULT 0,
+        motivo TEXT DEFAULT 'retirada',
+        observacao TEXT,
+        criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """,
 ]
 
 POSTGRES_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_produtos_user_validade ON produtos (user_email, validade)",
     "CREATE INDEX IF NOT EXISTS idx_produtos_user_codigo ON produtos (user_email, codigo)",
     "CREATE INDEX IF NOT EXISTS idx_produtos_user_nome ON produtos (user_email, nome)",
+    "CREATE INDEX IF NOT EXISTS idx_produtos_user_lote ON produtos (user_email, lote)",
+    "CREATE INDEX IF NOT EXISTS idx_produtos_user_categoria ON produtos (user_email, categoria)",
     "CREATE INDEX IF NOT EXISTS idx_codigos_autorizacao_email_hash ON codigos_autorizacao (email, codigo_hash)",
     "CREATE INDEX IF NOT EXISTS idx_codigos_autorizacao_expira ON codigos_autorizacao (expira_em)",
+    "CREATE INDEX IF NOT EXISTS idx_baixas_user_produto ON baixas_estoque (user_email, produto_id)",
+    "CREATE INDEX IF NOT EXISTS idx_baixas_user_criado ON baixas_estoque (user_email, criado_em)",
 ]
 
-SQLITE_INDEXES = [
-    "CREATE INDEX IF NOT EXISTS idx_produtos_user_validade ON produtos (user_email, validade)",
-    "CREATE INDEX IF NOT EXISTS idx_produtos_user_codigo ON produtos (user_email, codigo)",
-    "CREATE INDEX IF NOT EXISTS idx_produtos_user_nome ON produtos (user_email, nome)",
-    "CREATE INDEX IF NOT EXISTS idx_codigos_autorizacao_email_hash ON codigos_autorizacao (email, codigo_hash)",
-    "CREATE INDEX IF NOT EXISTS idx_codigos_autorizacao_expira ON codigos_autorizacao (expira_em)",
-]
+SQLITE_INDEXES = POSTGRES_INDEXES
 
 POSTGRES_MIGRATIONS = {
     'users': [
@@ -147,6 +181,14 @@ POSTGRES_MIGRATIONS = {
     'produtos': [
         "ALTER TABLE produtos ADD COLUMN IF NOT EXISTS tipo_qtd TEXT DEFAULT 'Un'",
         "ALTER TABLE produtos ADD COLUMN IF NOT EXISTS user_email TEXT",
+        "ALTER TABLE produtos ADD COLUMN IF NOT EXISTS lote TEXT",
+        "ALTER TABLE produtos ADD COLUMN IF NOT EXISTS categoria TEXT",
+        "ALTER TABLE produtos ADD COLUMN IF NOT EXISTS fornecedor TEXT",
+        "ALTER TABLE produtos ADD COLUMN IF NOT EXISTS localizacao TEXT",
+        "ALTER TABLE produtos ADD COLUMN IF NOT EXISTS observacao TEXT",
+        "ALTER TABLE produtos ADD COLUMN IF NOT EXISTS valor_unitario DOUBLE PRECISION DEFAULT 0",
+        "ALTER TABLE produtos ADD COLUMN IF NOT EXISTS criado_em TIMESTAMP DEFAULT NOW()",
+        "ALTER TABLE produtos ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMP DEFAULT NOW()",
     ],
     'pagamentos': [
         "ALTER TABLE pagamentos ADD COLUMN IF NOT EXISTS status TEXT",
@@ -158,6 +200,14 @@ POSTGRES_MIGRATIONS = {
         "ALTER TABLE codigos_autorizacao ADD COLUMN IF NOT EXISTS criado_em TIMESTAMP DEFAULT NOW()",
         "ALTER TABLE codigos_autorizacao ADD COLUMN IF NOT EXISTS expira_em TIMESTAMP",
         "ALTER TABLE codigos_autorizacao ADD COLUMN IF NOT EXISTS usado_em TIMESTAMP",
+    ],
+    'baixas_estoque': [
+        "ALTER TABLE baixas_estoque ADD COLUMN IF NOT EXISTS produto_id INTEGER",
+        "ALTER TABLE baixas_estoque ADD COLUMN IF NOT EXISTS user_email TEXT",
+        "ALTER TABLE baixas_estoque ADD COLUMN IF NOT EXISTS quantidade INTEGER DEFAULT 0",
+        "ALTER TABLE baixas_estoque ADD COLUMN IF NOT EXISTS motivo TEXT DEFAULT 'retirada'",
+        "ALTER TABLE baixas_estoque ADD COLUMN IF NOT EXISTS observacao TEXT",
+        "ALTER TABLE baixas_estoque ADD COLUMN IF NOT EXISTS criado_em TIMESTAMP DEFAULT NOW()",
     ],
 }
 
@@ -174,6 +224,14 @@ SQLITE_MIGRATIONS = {
     'produtos': {
         'tipo_qtd': "ALTER TABLE produtos ADD COLUMN tipo_qtd TEXT DEFAULT 'Un'",
         'user_email': 'ALTER TABLE produtos ADD COLUMN user_email TEXT',
+        'lote': 'ALTER TABLE produtos ADD COLUMN lote TEXT',
+        'categoria': 'ALTER TABLE produtos ADD COLUMN categoria TEXT',
+        'fornecedor': 'ALTER TABLE produtos ADD COLUMN fornecedor TEXT',
+        'localizacao': 'ALTER TABLE produtos ADD COLUMN localizacao TEXT',
+        'observacao': 'ALTER TABLE produtos ADD COLUMN observacao TEXT',
+        'valor_unitario': 'ALTER TABLE produtos ADD COLUMN valor_unitario REAL DEFAULT 0',
+        'criado_em': 'ALTER TABLE produtos ADD COLUMN criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
+        'atualizado_em': 'ALTER TABLE produtos ADD COLUMN atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
     },
     'pagamentos': {
         'status': 'ALTER TABLE pagamentos ADD COLUMN status TEXT',
@@ -185,6 +243,14 @@ SQLITE_MIGRATIONS = {
         'criado_em': 'ALTER TABLE codigos_autorizacao ADD COLUMN criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
         'expira_em': 'ALTER TABLE codigos_autorizacao ADD COLUMN expira_em TIMESTAMP',
         'usado_em': 'ALTER TABLE codigos_autorizacao ADD COLUMN usado_em TIMESTAMP',
+    },
+    'baixas_estoque': {
+        'produto_id': 'ALTER TABLE baixas_estoque ADD COLUMN produto_id INTEGER',
+        'user_email': 'ALTER TABLE baixas_estoque ADD COLUMN user_email TEXT',
+        'quantidade': 'ALTER TABLE baixas_estoque ADD COLUMN quantidade INTEGER DEFAULT 0',
+        'motivo': "ALTER TABLE baixas_estoque ADD COLUMN motivo TEXT DEFAULT 'retirada'",
+        'observacao': 'ALTER TABLE baixas_estoque ADD COLUMN observacao TEXT',
+        'criado_em': 'ALTER TABLE baixas_estoque ADD COLUMN criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
     },
 }
 

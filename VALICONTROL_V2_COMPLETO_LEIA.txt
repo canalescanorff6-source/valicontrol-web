@@ -1,0 +1,75 @@
+VALICONTROL WEB V2 COMPLETO
+
+Esta versão adiciona recursos de programa profissional de controle de validades:
+
+1. Cadastro de produto/lote
+   - Código/GTIN
+   - Nome
+   - Lote
+   - Categoria
+   - Fornecedor
+   - Localização/prateleira
+   - Validade
+   - Quantidade
+   - Tipo/unidade
+   - Valor unitário
+   - Observação
+
+2. Baixa de estoque
+   - Vendido
+   - Usado
+   - Descartado
+   - Perda
+   - Doado
+   - Retirado por validade
+   - Ajuste de estoque
+
+3. Tela de vencimentos
+   - Todos
+   - Vencidos
+   - Vencem hoje
+   - Próximos 7 dias
+   - Próximos 15 dias
+   - Próximos 30 dias
+   - Em dia
+
+4. Relatórios
+   - Valor estimado em risco
+   - Risco por categoria
+   - Histórico de baixas
+   - Exportação Excel do relatório
+   - Impressão pelo navegador
+
+5. Etiquetas
+   - Tela para imprimir etiquetas de validade
+   - Produto, código, lote, validade, quantidade e localização
+   - Botão imprimir
+
+6. Área Admin
+   - Lista de contas
+   - Ativar PRO por 30 dias
+   - Voltar conta para trial
+
+7. Pagamento simplificado
+   - PIX manual
+   - WhatsApp para envio de comprovante
+   - Sem necessidade de Asaas
+
+8. Layout revisado
+   - Sem sobreposição no dashboard
+   - Sem sobreposição na tela de produtos
+   - Sidebar com mais módulos
+   - Tabelas com rolagem horizontal quando necessário
+
+No RunSite use:
+Build Command: bash build.sh
+Start Command: bash runsite_start.sh
+
+Depois do deploy, rode se quiser testar:
+python manage.py diagnosticar_runsite
+python manage.py init_db
+python manage.py verificar_cadastro_codigo
+python manage.py diagnosticar_email
+
+Para ativar PRO manualmente:
+python manage.py ativar_pro cliente@validade.app --dias 30

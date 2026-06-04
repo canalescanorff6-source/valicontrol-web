@@ -120,3 +120,5 @@ BREVO_SENDER_EMAIL = os.getenv('BREVO_SENDER_EMAIL', 'canalescanorff6@gmail.com'
 BREVO_SENDER_NAME = os.getenv('BREVO_SENDER_NAME', 'ValiControl Web').strip()
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', f'{BREVO_SENDER_NAME} <{BREVO_SENDER_EMAIL}>' if BREVO_SENDER_EMAIL else 'ValiControl Web <no-reply@localhost>')
 EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '20'))
+
+ADMIN_EMAILS = os.getenv('ADMIN_EMAILS', os.getenv('CRIADOR_ADMIN_EMAILS', CADASTRO_EMAIL_TRAVADO)).strip()

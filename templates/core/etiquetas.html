@@ -1,0 +1,34 @@
+{% extends 'core/base.html' %}
+{% block title %}Etiquetas | ValiControl{% endblock %}
+{% block topbar_title %}Impressão de etiquetas{% endblock %}
+{% block content %}
+<header class="page-header page-header-enhanced no-print">
+  <div>
+    <p class="eyebrow">ETIQUETAS</p>
+    <h1>Etiquetas de validade</h1>
+    <p class="muted">Gere etiquetas simples para imprimir com produto, lote, validade e código.</p>
+  </div>
+  <div class="header-actions"><button class="btn btn-primary" onclick="window.print()">Imprimir etiquetas</button><a class="btn btn-ghost" href="{% url 'core:produtos' %}">Voltar</a></div>
+</header>
+
+<section class="glass-panel card-section no-print">
+  <form method="get" class="filters filters-modern"><input type="search" name="q" value="{{ busca }}" placeholder="Buscar produto para etiqueta..."><button class="btn btn-ghost" type="submit">Buscar</button></form>
+</section>
+
+<section class="labels-sheet">
+  {% if produtos %}
+    {% for p in produtos %}
+      <article class="label-card-print">
+        <strong>{{ p.nome }}</strong>
+        <span>Cód.: {{ p.codigo }}</span>
+        <span>Lote: {{ p.lote|default:'-' }}</span>
+        <span>Validade: <b>{{ p.validade }}</b></span>
+        <span>Qtd.: {{ p.quantidade }} {{ p.tipo_qtd }}</span>
+        <small>{{ p.localizacao|default:'ValiControl' }}</small>
+      </article>
+    {% endfor %}
+  {% else %}
+    <div class="empty no-print">Nenhum produto encontrado para etiqueta.</div>
+  {% endif %}
+</section>
+{% endblock %}

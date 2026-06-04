@@ -1,0 +1,34 @@
+{% extends 'core/base.html' %}
+{% block title %}Relatórios | ValiControl{% endblock %}
+{% block topbar_title %}Relatórios de validade{% endblock %}
+{% block content %}
+<header class="page-header page-header-enhanced">
+  <div>
+    <p class="eyebrow">ANÁLISE DO ESTOQUE</p>
+    <h1>Relatórios</h1>
+    <p class="muted">Veja perdas potenciais, categorias com mais risco e histórico de baixas.</p>
+  </div>
+  <div class="header-actions"><a class="btn btn-primary" href="{% url 'core:exportar_relatorio' %}">Exportar relatório Excel</a><button class="btn btn-ghost" onclick="window.print()">Imprimir</button></div>
+</header>
+
+<section class="metrics-grid metrics-grid-products">
+  <article class="metric-card glass-panel metric-danger"><span class="metric-label">Vencidos</span><strong>{{ stats.vencidos }}</strong><small>Produtos fora da validade</small></article>
+  <article class="metric-card glass-panel metric-warn"><span class="metric-label">Próximos</span><strong>{{ stats.proximos }}</strong><small>Produtos em atenção</small></article>
+  <article class="metric-card glass-panel metric-success"><span class="metric-label">Valor em risco</span><strong>R$ {{ valor_risco }}</strong><small>Estimativa por valor unitário</small></article>
+  <article class="metric-card glass-panel metric-neutral"><span class="metric-label">Baixas recentes</span><strong>{{ total_baixado }}</strong><small>Unidades movimentadas</small></article>
+</section>
+
+<section class="dashboard-grid dashboard-grid-fixed">
+  <section class="glass-panel card-section">
+    <div class="section-title"><div><h2>Risco por categoria</h2><p class="muted">Categorias com itens vencidos ou próximos do vencimento.</p></div></div>
+    {% if por_categoria %}<div class="table-wrap"><table class="table"><thead><tr><th>Categoria</th><th>Total</th><th>Vencidos</th><th>Próximos</th><th>Valor em risco</th></tr></thead><tbody>
+      {% for c in por_categoria %}<tr><td>{{ c.categoria }}</td><td>{{ c.total }}</td><td>{{ c.vencidos }}</td><td>{{ c.proximos }}</td><td>R$ {{ c.valor_risco }}</td></tr>{% endfor %}
+    </tbody></table></div>{% else %}<div class="empty">Nenhuma categoria para exibir.</div>{% endif %}
+  </section>
+
+  <section class="glass-panel card-section side-card">
+    <div class="section-title compact"><div><h2>Histórico de baixas</h2><p class="muted">Últimas movimentações registradas.</p></div></div>
+    {% if baixas %}<ul class="activity-list">{% for b in baixas %}<li><strong>{{ b.quantidade }} un</strong><span>{{ b.motivo }}</span><small>{{ b.criado_em }}</small></li>{% endfor %}</ul>{% else %}<div class="empty">Nenhuma baixa registrada ainda.</div>{% endif %}
+  </section>
+</section>
+{% endblock %}

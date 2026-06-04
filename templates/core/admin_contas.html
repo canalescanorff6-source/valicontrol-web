@@ -1,0 +1,15 @@
+{% extends 'core/base.html' %}
+{% block title %}Admin | ValiControl{% endblock %}
+{% block topbar_title %}Administração de contas{% endblock %}
+{% block content %}
+<header class="page-header page-header-enhanced"><div><p class="eyebrow">ÁREA DO DONO</p><h1>Contas do sistema</h1><p class="muted">Ative PRO, acompanhe trial e veja a quantidade de produtos por cliente.</p></div></header>
+<section class="glass-panel card-section">
+  <form method="get" class="filters filters-modern"><input type="search" name="q" value="{{ busca }}" placeholder="Buscar conta por e-mail..."><button class="btn btn-ghost" type="submit">Buscar</button></form>
+  {% if contas %}<div class="table-wrap"><table class="table table-products"><thead><tr><th>ID</th><th>Conta</th><th>Plano</th><th>Produtos</th><th>Trial</th><th>Ações</th></tr></thead><tbody>
+    {% for item in contas %}<tr>
+      <td>{{ item.conta.id }}</td><td>{{ item.conta.email }}</td><td><span class="pill">{{ item.stats.plano }}</span></td><td>{{ item.produtos }}</td><td>{{ item.stats.trial_restante }} dia(s)</td>
+      <td class="actions"><form method="post" action="{% url 'core:admin_ativar_pro' item.conta.id %}">{% csrf_token %}<input type="hidden" name="dias" value="30"><button class="btn btn-primary btn-sm" type="submit">PRO 30 dias</button></form><form method="post" action="{% url 'core:admin_bloquear' item.conta.id %}">{% csrf_token %}<button class="btn btn-ghost btn-sm" type="submit">Voltar Trial</button></form></td>
+    </tr>{% endfor %}
+  </tbody></table></div>{% else %}<div class="empty">Nenhuma conta encontrada.</div>{% endif %}
+</section>
+{% endblock %}

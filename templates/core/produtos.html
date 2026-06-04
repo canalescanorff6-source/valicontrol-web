@@ -6,7 +6,7 @@
   <div>
     <p class="eyebrow">CONTROLE DE PRODUTOS</p>
     <h1>Produtos</h1>
-    <p class="muted">Cadastre itens, pesquise por código/GTIN, carregue estoque via planilha e acompanhe a situação de validade em um layout mais operacional.</p>
+    <p class="muted">Cadastre produtos com lote, validade, local de armazenamento, fornecedor e valor estimado.</p>
   </div>
   <div class="header-actions">
     <a class="btn btn-ghost" href="{% url 'core:exportar_produtos' 'xlsx' %}">Exportar Excel</a>
@@ -26,95 +26,63 @@
 {% endif %}
 
 <section class="metrics-grid metrics-grid-products">
-  <article class="metric-card glass-panel metric-neutral">
-    <span class="metric-label">Total cadastrados</span>
-    <strong>{{ stats.total }}</strong>
-    <small>{{ stats.total }} produto(s) no sistema</small>
-  </article>
-  <article class="metric-card glass-panel metric-danger">
-    <span class="metric-label">Vencidos</span>
-    <strong>{{ stats.vencidos }}</strong>
-    <small>Produtos fora da validade</small>
-  </article>
-  <article class="metric-card glass-panel metric-warn">
-    <span class="metric-label">Próximos</span>
-    <strong>{{ stats.proximos }}</strong>
-    <small>Itens para monitorar</small>
-  </article>
-  <article class="metric-card glass-panel metric-success">
-    <span class="metric-label">Limite do plano</span>
-    <strong>{{ stats.limite }}</strong>
-    <small>Plano {{ stats.plano }} · {{ stats.uso }}% utilizado</small>
-  </article>
-</section>
-
-<section class="products-layout">
-  <section class="glass-panel card-section">
-    <div class="section-title">
-      <div>
-        <h2>Novo produto</h2>
-        <p class="muted">Digite o código ou GTIN para tentar preencher o nome automaticamente.</p>
-      </div>
-      <span class="pill">{{ stats.total }} / {{ stats.limite }}</span>
-    </div>
-
-    <form method="post" class="product-form product-form-modern">
-      {% csrf_token %}
-      <label>
-        <span>Código/GTIN</span>
-        <input type="text" name="codigo" id="codigoProduto" placeholder="Ex: 789..." required {% if stats.bloqueado %}disabled{% endif %}>
-      </label>
-      <label class="wide">
-        <span>Nome</span>
-        <input type="text" name="nome" id="nomeProduto" placeholder="Nome do produto" required {% if stats.bloqueado %}disabled{% endif %}>
-      </label>
-      <label>
-        <span>Validade</span>
-        <input type="date" name="validade" required {% if stats.bloqueado %}disabled{% endif %}>
-      </label>
-      <label>
-        <span>Quantidade</span>
-        <input type="number" name="quantidade" min="0" step="1" placeholder="0" required {% if stats.bloqueado %}disabled{% endif %}>
-      </label>
-      <label>
-        <span>Tipo</span>
-        <select name="tipo_qtd" {% if stats.bloqueado %}disabled{% endif %}>
-          {% for tipo in tipos_qtd %}<option value="{{ tipo }}">{{ tipo }}</option>{% endfor %}
-        </select>
-      </label>
-      <button class="btn btn-primary" type="submit" {% if stats.bloqueado %}disabled{% endif %}>Adicionar produto</button>
-    </form>
-  </section>
-
-  <section class="glass-panel card-section side-card">
-    <div class="section-title compact">
-      <div>
-        <h2>Importar estoque</h2>
-        <p class="muted">A base de códigos já está no sistema. Use a importação apenas para carregar validade e quantidade do seu estoque.</p>
-      </div>
-    </div>
-    <form method="post" action="{% url 'core:importar_produtos' %}" enctype="multipart/form-data" class="import-form import-form-vertical">
-      {% csrf_token %}
-      <input type="file" name="arquivo" accept=".xlsx,.csv" required {% if stats.bloqueado %}disabled{% endif %}>
-      <button class="btn btn-ghost" type="submit" {% if stats.bloqueado %}disabled{% endif %}>Importar estoque</button>
-    </form>
-    <div class="import-note">
-      <strong>Colunas aceitas</strong>
-      <small>código, nome, validade, quantidade e tipo.</small>
-    </div>
-  </section>
+  <article class="metric-card glass-panel metric-neutral"><span class="metric-label">Total cadastrados</span><strong>{{ stats.total }}</strong><small>{{ stats.total }} produto(s) no sistema</small></article>
+  <article class="metric-card glass-panel metric-danger"><span class="metric-label">Vencidos</span><strong>{{ stats.vencidos }}</strong><small>Produtos fora da validade</small></article>
+  <article class="metric-card glass-panel metric-warn"><span class="metric-label">Próximos</span><strong>{{ stats.proximos }}</strong><small>Itens para monitorar</small></article>
+  <article class="metric-card glass-panel metric-success"><span class="metric-label">Limite do plano</span><strong>{{ stats.limite }}</strong><small>Plano {{ stats.plano }} · {{ stats.uso }}% utilizado</small></article>
 </section>
 
 <section class="glass-panel card-section">
   <div class="section-title">
     <div>
-      <h2>Lista de produtos</h2>
-      <p class="muted">Consulte e filtre seus cadastros por situação de validade.</p>
+      <h2>Novo produto/lote</h2>
+      <p class="muted">O mesmo produto pode ser cadastrado várias vezes com lotes e validades diferentes.</p>
     </div>
+    <span class="pill">{{ stats.total }} / {{ stats.limite }}</span>
   </div>
 
+  <form method="post" class="product-form product-form-v2">
+    {% csrf_token %}
+    <label><span>Código/GTIN</span><input type="text" name="codigo" id="codigoProduto" placeholder="Ex: 789..." required {% if stats.bloqueado %}disabled{% endif %}></label>
+    <label class="wide"><span>Nome</span><input type="text" name="nome" id="nomeProduto" placeholder="Nome do produto" required {% if stats.bloqueado %}disabled{% endif %}></label>
+    <label><span>Lote</span><input type="text" name="lote" placeholder="Ex: LT2506-A" {% if stats.bloqueado %}disabled{% endif %}></label>
+    <label><span>Categoria</span><input type="text" name="categoria" list="categorias" placeholder="Alimentos" {% if stats.bloqueado %}disabled{% endif %}></label>
+    <label><span>Fornecedor</span><input type="text" name="fornecedor" placeholder="Fornecedor/marca" {% if stats.bloqueado %}disabled{% endif %}></label>
+    <label><span>Localização</span><input type="text" name="localizacao" placeholder="Estoque A / Prateleira 3" {% if stats.bloqueado %}disabled{% endif %}></label>
+    <label><span>Validade</span><input type="date" name="validade" required {% if stats.bloqueado %}disabled{% endif %}></label>
+    <label><span>Quantidade</span><input type="number" name="quantidade" min="0" step="1" placeholder="0" required {% if stats.bloqueado %}disabled{% endif %}></label>
+    <label><span>Tipo</span><select name="tipo_qtd" {% if stats.bloqueado %}disabled{% endif %}>{% for tipo in tipos_qtd %}<option value="{{ tipo }}">{{ tipo }}</option>{% endfor %}</select></label>
+    <label><span>Valor un.</span><input type="text" name="valor_unitario" placeholder="0,00" {% if stats.bloqueado %}disabled{% endif %}></label>
+    <label class="wide"><span>Observação</span><input type="text" name="observacao" placeholder="Ex: produto sensível, promoção, avaria..." {% if stats.bloqueado %}disabled{% endif %}></label>
+    <button class="btn btn-primary" type="submit" {% if stats.bloqueado %}disabled{% endif %}>Adicionar produto</button>
+  </form>
+  <datalist id="categorias">{% for c in categorias_sugeridas %}<option value="{{ c }}">{% endfor %}</datalist>
+</section>
+
+<section class="products-layout products-layout-v2">
+  <section class="glass-panel card-section side-card">
+    <div class="section-title compact"><div><h2>Importar estoque</h2><p class="muted">A base de códigos já está no sistema. Use a importação para carregar validade, lote, quantidade e local.</p></div></div>
+    <form method="post" action="{% url 'core:importar_produtos' %}" enctype="multipart/form-data" class="import-form import-form-vertical">
+      {% csrf_token %}
+      <input type="file" name="arquivo" accept=".xlsx,.csv" required {% if stats.bloqueado %}disabled{% endif %}>
+      <button class="btn btn-ghost" type="submit" {% if stats.bloqueado %}disabled{% endif %}>Importar estoque</button>
+    </form>
+    <div class="import-note"><strong>Colunas aceitas</strong><small>código, nome, lote, categoria, fornecedor, localizacao, validade, quantidade, tipo, valor, observacao.</small></div>
+  </section>
+  <section class="glass-panel card-section side-card">
+    <div class="section-title compact"><div><h2>Ações rápidas</h2><p class="muted">Use as telas extras para operar o estoque.</p></div></div>
+    <div class="quick-actions-grid">
+      <a class="btn btn-ghost" href="{% url 'core:vencimentos' %}">Ver vencimentos</a>
+      <a class="btn btn-ghost" href="{% url 'core:relatorios' %}">Abrir relatórios</a>
+      <a class="btn btn-ghost" href="{% url 'core:etiquetas' %}">Imprimir etiquetas</a>
+    </div>
+  </section>
+</section>
+
+<section class="glass-panel card-section">
+  <div class="section-title"><div><h2>Lista de produtos/lotes</h2><p class="muted">Consulte, filtre, edite, dê baixa e imprima etiquetas.</p></div></div>
   <form method="get" class="filters filters-modern">
-    <input type="search" name="q" value="{{ busca }}" placeholder="Buscar por nome ou código...">
+    <input type="search" name="q" value="{{ busca }}" placeholder="Buscar por nome, código, lote, categoria, fornecedor ou local...">
     <select name="status">
       <option value="todos" {% if filtro == 'todos' %}selected{% endif %}>Todos os status</option>
       <option value="vencido" {% if filtro == 'vencido' %}selected{% endif %}>Somente vencidos</option>
@@ -126,57 +94,44 @@
 
   {% if produtos %}
   <div class="table-wrap">
-    <table class="table table-products">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Produto</th>
-          <th>Código</th>
-          <th>Validade</th>
-          <th>Qtd</th>
-          <th>Status</th>
-          <th>Ações</th>
-        </tr>
-      </thead>
+    <table class="table table-products table-wide">
+      <thead><tr><th>ID</th><th>Produto</th><th>Lote</th><th>Categoria/local</th><th>Validade</th><th>Qtd</th><th>Status</th><th>Baixa</th><th>Ações</th></tr></thead>
       <tbody>
         {% for p in produtos %}
         <tr>
           <td>{{ p.id }}</td>
-          <td>
-            <div class="product-main-info">
-              <strong>{{ p.nome }}</strong>
-              <small>Cadastro {{ p.id }}</small>
-            </div>
-          </td>
-          <td>{{ p.codigo }}</td>
+          <td><div class="product-main-info"><strong>{{ p.nome }}</strong><small>Cód: {{ p.codigo }}{% if p.fornecedor %} · {{ p.fornecedor }}{% endif %}</small></div></td>
+          <td>{{ p.lote|default:'-' }}</td>
+          <td><div class="product-main-info"><strong>{{ p.categoria|default:'Sem categoria' }}</strong><small>{{ p.localizacao|default:'Sem local' }}</small></div></td>
           <td>{{ p.validade }}</td>
           <td>{{ p.quantidade }} {{ p.tipo_qtd }}</td>
           <td><span class="badge {{ p.status }}">{{ p.status_label }}</span></td>
+          <td>
+            <form method="post" action="{% url 'core:baixa_produto' p.id %}" class="baixa-inline-form">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{% url 'core:produtos' %}">
+              <input type="number" name="quantidade_baixa" min="1" max="{{ p.quantidade }}" placeholder="Qtd">
+              <select name="motivo_baixa">{% for m in baixa_motivos %}<option>{{ m }}</option>{% endfor %}</select>
+              <button class="icon-btn" type="submit" title="Dar baixa">✓</button>
+            </form>
+          </td>
           <td class="actions">
             <a class="icon-btn" href="{% url 'core:editar_produto' p.id %}" title="Editar">✎</a>
-            <form method="post" action="{% url 'core:excluir_produto' p.id %}" onsubmit="return confirm('Excluir este produto?')">
-              {% csrf_token %}
-              <button class="icon-btn danger-btn" type="submit" title="Excluir">🗑</button>
-            </form>
+            <a class="icon-btn" href="{% url 'core:etiquetas' %}?id={{ p.id }}" title="Etiqueta">⌗</a>
+            <form method="post" action="{% url 'core:excluir_produto' p.id %}" onsubmit="return confirm('Excluir este produto?')">{% csrf_token %}<button class="icon-btn danger-btn" type="submit" title="Excluir">🗑</button></form>
           </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
-  {% else %}
-    <div class="empty">Nenhum produto encontrado com os filtros atuais.</div>
-  {% endif %}
+  {% else %}<div class="empty">Nenhum produto encontrado com os filtros atuais.</div>{% endif %}
 
   {% if page_obj and page_obj.paginator.num_pages > 1 %}
   <div class="pagination-bar">
-    {% if page_obj.has_previous %}
-      <a class="btn btn-ghost" href="?q={{ busca|urlencode }}&status={{ filtro }}&page={{ page_obj.previous_page_number }}">Anterior</a>
-    {% endif %}
+    {% if page_obj.has_previous %}<a class="btn btn-ghost" href="?q={{ busca|urlencode }}&status={{ filtro }}&page={{ page_obj.previous_page_number }}">Anterior</a>{% endif %}
     <span class="muted">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-    {% if page_obj.has_next %}
-      <a class="btn btn-ghost" href="?q={{ busca|urlencode }}&status={{ filtro }}&page={{ page_obj.next_page_number }}">Próxima</a>
-    {% endif %}
+    {% if page_obj.has_next %}<a class="btn btn-ghost" href="?q={{ busca|urlencode }}&status={{ filtro }}&page={{ page_obj.next_page_number }}">Próxima</a>{% endif %}
   </div>
   {% endif %}
 </section>

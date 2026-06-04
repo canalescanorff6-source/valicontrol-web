@@ -1,0 +1,54 @@
+{% extends 'core/base.html' %}
+{% block title %}Vencimentos | ValiControl{% endblock %}
+{% block topbar_title %}Controle de vencimentos{% endblock %}
+{% block content %}
+<header class="page-header page-header-enhanced">
+  <div>
+    <p class="eyebrow">AGENDA DE VALIDADES</p>
+    <h1>Vencimentos</h1>
+    <p class="muted">Filtre rapidamente produtos vencidos, vencendo hoje ou próximos do prazo.</p>
+  </div>
+  <div class="header-actions"><a class="btn btn-primary" href="{% url 'core:produtos' %}">Cadastrar produto</a><a class="btn btn-ghost" href="{% url 'core:etiquetas' %}">Etiquetas</a></div>
+</header>
+
+<section class="metrics-grid metrics-grid-products">
+  <article class="metric-card glass-panel metric-danger"><span class="metric-label">Vencidos</span><strong>{{ stats.vencidos }}</strong><small>Precisam de ação imediata</small></article>
+  <article class="metric-card glass-panel metric-warn"><span class="metric-label">Próximos</span><strong>{{ stats.proximos }}</strong><small>Dentro da janela configurada</small></article>
+  <article class="metric-card glass-panel metric-success"><span class="metric-label">Em dia</span><strong>{{ stats.ok }}</strong><small>Sem risco no momento</small></article>
+  <article class="metric-card glass-panel metric-neutral"><span class="metric-label">Total</span><strong>{{ stats.total }}</strong><small>Produtos/lotes cadastrados</small></article>
+</section>
+
+<section class="glass-panel card-section">
+  <form method="get" class="filters filters-modern filters-vencimentos">
+    <input type="search" name="q" value="{{ busca }}" placeholder="Buscar por produto, código, lote, categoria ou local...">
+    <select name="periodo">
+      {% for value,label in periodos %}<option value="{{ value }}" {% if periodo == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <button class="btn btn-ghost" type="submit">Filtrar</button>
+  </form>
+  {% if produtos %}
+  <div class="table-wrap">
+    <table class="table table-products">
+      <thead><tr><th>Produto</th><th>Lote</th><th>Categoria/local</th><th>Validade</th><th>Quantidade</th><th>Status</th><th>Ações</th></tr></thead>
+      <tbody>{% for p in produtos %}
+        <tr>
+          <td><div class="product-main-info"><strong>{{ p.nome }}</strong><small>{{ p.codigo }}</small></div></td>
+          <td>{{ p.lote|default:'-' }}</td>
+          <td><div class="product-main-info"><strong>{{ p.categoria|default:'Sem categoria' }}</strong><small>{{ p.localizacao|default:'Sem local' }}</small></div></td>
+          <td>{{ p.validade }}</td>
+          <td>{{ p.quantidade }} {{ p.tipo_qtd }}</td>
+          <td><span class="badge {{ p.status }}">{{ p.status_label }}</span></td>
+          <td class="actions"><a class="icon-btn" href="{% url 'core:editar_produto' p.id %}">✎</a><a class="icon-btn" href="{% url 'core:etiquetas' %}?id={{ p.id }}">⌗</a></td>
+        </tr>
+      {% endfor %}</tbody>
+    </table>
+  </div>
+  {% else %}<div class="empty">Nenhum vencimento encontrado para o filtro selecionado.</div>{% endif %}
+
+  {% if page_obj and page_obj.paginator.num_pages > 1 %}<div class="pagination-bar">
+    {% if page_obj.has_previous %}<a class="btn btn-ghost" href="?q={{ busca|urlencode }}&periodo={{ periodo }}&page={{ page_obj.previous_page_number }}">Anterior</a>{% endif %}
+    <span class="muted">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a class="btn btn-ghost" href="?q={{ busca|urlencode }}&periodo={{ periodo }}&page={{ page_obj.next_page_number }}">Próxima</a>{% endif %}
+  </div>{% endif %}
+</section>
+{% endblock %}

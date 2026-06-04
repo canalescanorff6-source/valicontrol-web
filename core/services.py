@@ -23,7 +23,7 @@ from django.db import connection
 from django.contrib.auth.hashers import make_password, check_password, identify_hasher
 from openpyxl import load_workbook, Workbook
 
-from .models import Conta, Produto
+from .models import Conta, Produto, BaixaEstoque
 
 logger = logging.getLogger(__name__)
 
@@ -777,15 +777,32 @@ def limpar_validade(valor) -> str:
     return texto
 
 
+
+def _valor_float(valor) -> float:
+    try:
+        return float(str(valor or '0').replace(',', '.'))
+    except Exception:
+        return 0.0
+
+
 def montar_produto_dict(produto: Produto) -> dict:
     status = produto_status(produto.validade)
+    valor_unitario = _valor_float(getattr(produto, 'valor_unitario', 0))
+    quantidade = int(getattr(produto, 'quantidade', 0) or 0)
     return {
         'id': produto.id,
         'codigo': produto.codigo or '',
         'nome': produto.nome or '',
+        'lote': getattr(produto, 'lote', '') or '',
+        'categoria': getattr(produto, 'categoria', '') or '',
+        'fornecedor': getattr(produto, 'fornecedor', '') or '',
+        'localizacao': getattr(produto, 'localizacao', '') or '',
+        'observacao': getattr(produto, 'observacao', '') or '',
+        'valor_unitario': valor_unitario,
+        'valor_total': round(valor_unitario * quantidade, 2),
         'validade_original': produto.validade or '',
         'validade': formatar_data_br(produto.validade),
-        'quantidade': produto.quantidade,
+        'quantidade': quantidade,
         'tipo_qtd': produto.tipo_qtd or 'Un',
         'status': status,
         'status_label': status_label(status),
@@ -796,16 +813,16 @@ def exportar_produtos_xlsx(conta: Conta) -> bytes:
     wb = Workbook()
     ws = wb.active
     ws.title = 'Produtos'
-    ws.append(['ID', 'Código', 'Nome', 'Validade', 'Quantidade', 'Tipo', 'Status'])
+    ws.append(['ID', 'Código', 'Nome', 'Lote', 'Categoria', 'Fornecedor', 'Localização', 'Validade', 'Quantidade', 'Tipo', 'Valor unitário', 'Valor total', 'Status', 'Observação'])
     for produto in produtos_do_usuario(conta.email):
         item = montar_produto_dict(produto)
         ws.append([
-            item['id'], item['codigo'], item['nome'], item['validade'],
-            item['quantidade'], item['tipo_qtd'], item['status_label']
+            item['id'], item['codigo'], item['nome'], item['lote'], item['categoria'], item['fornecedor'], item['localizacao'],
+            item['validade'], item['quantidade'], item['tipo_qtd'], item['valor_unitario'], item['valor_total'], item['status_label'], item['observacao']
         ])
     for col in ws.columns:
         max_len = max(len(str(cell.value or '')) for cell in col)
-        ws.column_dimensions[col[0].column_letter].width = min(max_len + 3, 48)
+        ws.column_dimensions[col[0].column_letter].width = min(max_len + 3, 54)
     bio = BytesIO()
     wb.save(bio)
     return bio.getvalue()
@@ -814,24 +831,26 @@ def exportar_produtos_xlsx(conta: Conta) -> bytes:
 def exportar_produtos_csv(conta: Conta) -> str:
     output = StringIO()
     writer = csv.writer(output, delimiter=';')
-    writer.writerow(['ID', 'Código', 'Nome', 'Validade', 'Quantidade', 'Tipo', 'Status'])
+    writer.writerow(['ID', 'Código', 'Nome', 'Lote', 'Categoria', 'Fornecedor', 'Localização', 'Validade', 'Quantidade', 'Tipo', 'Valor unitário', 'Valor total', 'Status', 'Observação'])
     for produto in produtos_do_usuario(conta.email):
         item = montar_produto_dict(produto)
         writer.writerow([
-            item['id'], item['codigo'], item['nome'], item['validade'],
-            item['quantidade'], item['tipo_qtd'], item['status_label']
+            item['id'], item['codigo'], item['nome'], item['lote'], item['categoria'], item['fornecedor'], item['localizacao'],
+            item['validade'], item['quantidade'], item['tipo_qtd'], item['valor_unitario'], item['valor_total'], item['status_label'], item['observacao']
         ])
     return output.getvalue()
 
 
 def importar_produtos_de_planilha(conta: Conta, arquivo) -> tuple[int, list[str]]:
-    """Importa XLSX/CSV com colunas código, nome, validade, quantidade e tipo."""
+    """Importa XLSX/CSV com colunas código, nome, validade, quantidade, lote, categoria, fornecedor e local."""
     erros = []
     criados = 0
     nome_arquivo = (getattr(arquivo, 'name', '') or '').lower()
 
     def normalizar_header(h):
-        return str(h or '').strip().lower().replace('ó', 'o').replace('ç', 'c')
+        texto = str(h or '').strip().lower()
+        texto = unicodedata.normalize('NFKD', texto).encode('ascii', 'ignore').decode('ascii')
+        return texto.replace(' ', '_').replace('-', '_')
 
     def processar_linhas(linhas):
         nonlocal criados
@@ -847,11 +866,17 @@ def importar_produtos_de_planilha(conta: Conta, arquivo) -> tuple[int, list[str]
                     return headers.index(nome)
             return None
 
-        idx_codigo = idx('codigo', 'código', 'gtin', 'codigo/gtin')
+        idx_codigo = idx('codigo', 'código', 'gtin', 'codigo/gtin', 'ean')
         idx_nome = idx('nome', 'descricao', 'descrição', 'produto')
         idx_validade = idx('validade', 'vencimento', 'data')
-        idx_qtd = idx('quantidade', 'qtd')
+        idx_qtd = idx('quantidade', 'qtd', 'estoque')
         idx_tipo = idx('tipo', 'tipo_qtd', 'unidade')
+        idx_lote = idx('lote', 'numero_lote', 'n_lote')
+        idx_categoria = idx('categoria', 'grupo', 'setor')
+        idx_fornecedor = idx('fornecedor', 'marca')
+        idx_local = idx('localizacao', 'localização', 'local', 'prateleira', 'estoque')
+        idx_obs = idx('observacao', 'observação', 'obs')
+        idx_valor = idx('valor_unitario', 'valor', 'preco', 'preço', 'custo')
 
         if idx_codigo is None or idx_nome is None or idx_validade is None:
             erros.append('A planilha precisa ter pelo menos: código, nome e validade.')
@@ -864,6 +889,12 @@ def importar_produtos_de_planilha(conta: Conta, arquivo) -> tuple[int, list[str]
                 validade = limpar_validade(row[idx_validade] if idx_validade < len(row) else '')
                 qtd_raw = row[idx_qtd] if idx_qtd is not None and idx_qtd < len(row) else 0
                 tipo = str(row[idx_tipo] or 'Un').strip() if idx_tipo is not None and idx_tipo < len(row) else 'Un'
+                lote = str(row[idx_lote] or '').strip() if idx_lote is not None and idx_lote < len(row) else ''
+                categoria = str(row[idx_categoria] or '').strip() if idx_categoria is not None and idx_categoria < len(row) else ''
+                fornecedor = str(row[idx_fornecedor] or '').strip() if idx_fornecedor is not None and idx_fornecedor < len(row) else ''
+                localizacao = str(row[idx_local] or '').strip() if idx_local is not None and idx_local < len(row) else ''
+                observacao = str(row[idx_obs] or '').strip() if idx_obs is not None and idx_obs < len(row) else ''
+                valor_unitario = _valor_float(row[idx_valor]) if idx_valor is not None and idx_valor < len(row) else 0
                 quantidade = int(float(qtd_raw or 0))
                 datetime.strptime(validade, '%Y-%m-%d')
                 if not codigo or not nome:
@@ -879,6 +910,14 @@ def importar_produtos_de_planilha(conta: Conta, arquivo) -> tuple[int, list[str]
                     quantidade=max(0, quantidade),
                     tipo_qtd=tipo or 'Un',
                     user_email=conta.email,
+                    lote=lote,
+                    categoria=categoria,
+                    fornecedor=fornecedor,
+                    localizacao=localizacao,
+                    observacao=observacao,
+                    valor_unitario=max(0, valor_unitario),
+                    criado_em=datetime.now(),
+                    atualizado_em=datetime.now(),
                 )
                 criados += 1
             except Exception:

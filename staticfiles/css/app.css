@@ -1406,3 +1406,114 @@ html, body {
     min-width: 680px;
   }
 }
+
+/* ===== ValiControl v2 - módulos completos ===== */
+.dashboard-grid-fixed,
+.dashboard-grid,
+.products-layout-v2 {
+  align-items: start;
+}
+.product-form-v2 {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+.product-form-v2 .wide { grid-column: span 2; }
+.products-layout-v2 {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .75rem;
+}
+.table-wide { min-width: 1120px; }
+.baixa-inline-form {
+  display: grid;
+  grid-template-columns: 72px 126px 38px;
+  gap: .35rem;
+  align-items: center;
+  min-width: 245px;
+}
+.baixa-inline-form input,
+.baixa-inline-form select {
+  padding: .62rem .65rem;
+  border-radius: 12px;
+  font-size: .82rem;
+}
+.activity-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: .75rem;
+}
+.activity-list li {
+  display: grid;
+  gap: .18rem;
+  padding: .8rem;
+  border-radius: 16px;
+  background: rgba(2, 10, 22, .45);
+  border: 1px solid rgba(124, 155, 196, .1);
+}
+.activity-list span { color: var(--muted); }
+.activity-list small { color: var(--muted-2); }
+.labels-sheet {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+.label-card-print {
+  display: grid;
+  gap: 5px;
+  min-height: 145px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px dashed rgba(124, 155, 196, .32);
+  background: rgba(6, 19, 38, .82);
+  color: var(--text);
+}
+.label-card-print strong { font-size: 1rem; line-height: 1.15; }
+.label-card-print span { color: #d6e2f0; font-size: .88rem; }
+.label-card-print small { color: var(--muted); margin-top: auto; }
+.filters-vencimentos { grid-template-columns: 1fr 220px auto; }
+
+@media (max-width: 1320px) {
+  .dashboard-grid,
+  .dashboard-grid-fixed,
+  .products-layout-v2 {
+    grid-template-columns: 1fr !important;
+  }
+  .dashboard-side-col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 1120px) {
+  .product-form-v2 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .product-form-v2 .wide { grid-column: span 2; }
+}
+@media (max-width: 760px) {
+  .product-form-v2,
+  .quick-actions-grid,
+  .filters-vencimentos,
+  .dashboard-side-col {
+    grid-template-columns: 1fr !important;
+  }
+  .product-form-v2 .wide { grid-column: span 1; }
+  .baixa-inline-form { grid-template-columns: 1fr; min-width: 150px; }
+}
+
+@media print {
+  body {
+    background: white !important;
+    color: #111827 !important;
+  }
+  .sidebar, .topbar, .no-print, .bg-grid, .bg-orb, .messages { display: none !important; }
+  .app-shell, .workspace, .content { display: block !important; width: 100% !important; margin: 0 !important; padding: 0 !important; min-height: 0 !important; }
+  .labels-sheet { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .label-card-print {
+    color: #111827 !important;
+    background: white !important;
+    border: 1px solid #111827 !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .label-card-print span, .label-card-print small { color: #111827 !important; }
+}

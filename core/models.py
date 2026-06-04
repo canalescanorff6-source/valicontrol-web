@@ -29,6 +29,14 @@ class Produto(models.Model):
     quantidade = models.IntegerField(default=0)
     tipo_qtd = models.TextField(default='Un')
     user_email = models.TextField()
+    lote = models.TextField(null=True, blank=True)
+    categoria = models.TextField(null=True, blank=True)
+    fornecedor = models.TextField(null=True, blank=True)
+    localizacao = models.TextField(null=True, blank=True)
+    observacao = models.TextField(null=True, blank=True)
+    valor_unitario = models.FloatField(default=0)
+    criado_em = models.DateTimeField(null=True, blank=True)
+    atualizado_em = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         managed = False
@@ -59,3 +67,17 @@ class Pagamento(models.Model):
     class Meta:
         managed = False
         db_table = 'pagamentos'
+
+
+class BaixaEstoque(models.Model):
+    id = models.AutoField(primary_key=True)
+    produto_id = models.IntegerField()
+    user_email = models.TextField()
+    quantidade = models.IntegerField(default=0)
+    motivo = models.TextField(default='retirada')
+    observacao = models.TextField(null=True, blank=True)
+    criado_em = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = 'baixas_estoque'
