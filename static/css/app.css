@@ -1058,3 +1058,49 @@ input[readonly].email-locked {
 .single-authorized-form input[name="confirmar"] {
   background: rgba(2, 9, 20, 0.9);
 }
+
+/* Ajustes finais de organização e PIX manual */
+.pix-data-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .8rem;
+  margin-bottom: 1rem;
+}
+.pix-data-grid div {
+  padding: .9rem;
+  border-radius: 16px;
+  background: rgba(2, 10, 22, .45);
+  border: 1px solid rgba(124, 155, 196, .12);
+}
+.pix-data-grid span,
+.copy-field span {
+  display: block;
+  color: var(--muted);
+  font-size: .82rem;
+  font-weight: 800;
+  margin-bottom: .35rem;
+}
+.pix-data-grid strong {
+  display: block;
+  word-break: break-word;
+}
+.copy-field textarea {
+  min-height: 92px;
+  font-weight: 800;
+  word-break: break-all;
+}
+.manual-pix-box {
+  display: grid;
+  gap: .8rem;
+}
+.payment-command-box strong {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .92rem;
+  line-height: 1.45;
+}
+.payment-confirm-note {
+  margin-top: 0;
+}
+@media (max-width: 640px) {
+  .pix-data-grid { grid-template-columns: 1fr; }
+}

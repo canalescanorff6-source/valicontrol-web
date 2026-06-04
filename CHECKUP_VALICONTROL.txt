@@ -1,0 +1,62 @@
+CHECKUP COMPLETO - VALICONTROL WEB
+
+Versão corrigida e organizada para RunSite.
+
+O QUE FOI REVISADO/CORRIGIDO:
+
+1. Cadastro protegido por código
+- Mantido cadastro com código obrigatório.
+- E-mail que recebe o código fica travado em CADASTRO_EMAIL_TRAVADO.
+- Usuário/e-mail da nova conta continua editável.
+- Tela de cadastro simplificada para não repetir campos.
+- Comando de verificação atualizado: python manage.py verificar_cadastro_codigo
+
+2. E-mail/Brevo
+- Adicionado comando de diagnóstico: python manage.py diagnosticar_email
+- Adicionado teste direto: python manage.py diagnosticar_email --teste teste@validade.app
+- Documentação organizada para separar remetente e destinatário:
+  BREVO_SENDER_EMAIL = e-mail que envia pela Brevo.
+  CADASTRO_EMAIL_TRAVADO = e-mail que recebe o código.
+
+3. Pagamento
+- Alterado para PIX manual por padrão.
+- Não precisa mais configurar ASAAS_API_KEY para usar o sistema.
+- Tela PRO mostra chave Pix, titular, valor e botão de WhatsApp.
+- Ativação manual com: python manage.py ativar_pro cliente@validade.app --dias 30
+- Asaas ficou apenas como modo opcional futuro, usando PAGAMENTO_MODO=asaas.
+
+4. Layout/design
+- Mantido layout premium escuro com foco em programa de controle de validades.
+- Login, cadastro, dashboard, produtos e pagamento mantidos organizados.
+- Ajustes extras no layout do PIX manual e informações do plano.
+- Logo permanece estático em CSS/imagem leve para carregar rápido.
+
+5. Dados e desempenho
+- Mantida base local data/dados.sqlite3 + data/dados.xlsx.
+- Preenchimento por código/GTIN continua usando índice leve SQLite.
+- Dashboard e produtos continuam paginados/otimizados.
+
+6. RunSite
+- README_RUNSITE.md atualizado.
+- RUNSITE_CONFIG_PRONTA.txt atualizado.
+- .env.example atualizado com variáveis corretas.
+- health/ agora mostra modo de pagamento e status da Brevo.
+
+COMANDOS ÚTEIS NO RUNSITE:
+
+python manage.py diagnosticar_runsite
+python manage.py verificar_cadastro_codigo
+python manage.py diagnosticar_email
+python manage.py diagnosticar_email --teste teste@validade.app
+python manage.py ativar_pro cliente@validade.app --dias 30
+
+CONFIGURAÇÃO PRINCIPAL DO RUNSITE:
+
+Build Command:
+bash build.sh
+
+Start Command:
+bash runsite_start.sh
+
+Porta:
+Automática/em branco.

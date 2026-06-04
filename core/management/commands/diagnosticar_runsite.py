@@ -14,8 +14,10 @@ class Command(BaseCommand):
         self.stdout.write(f'DEBUG: {settings.DEBUG}')
         self.stdout.write(f'ALLOWED_HOSTS: {settings.ALLOWED_HOSTS}')
         self.stdout.write(f'Database: {connection.vendor}')
-        self.stdout.write(f'ASAAS_API_KEY configurada: {bool(settings.ASAAS_API_KEY)}')
-        self.stdout.write(f'Webhook token configurado: {bool(settings.ASAAS_WEBHOOK_TOKEN)}')
+        self.stdout.write(f'Modo pagamento: {getattr(settings, 'PAGAMENTO_MODO', 'manual_pix')}')
+        self.stdout.write(f'PIX_CHAVE configurada: {bool(getattr(settings, 'PIX_CHAVE', ''))}')
+        self.stdout.write(f'BREVO_API_KEY configurada: {bool(getattr(settings, 'BREVO_API_KEY', ''))}')
+        self.stdout.write(f'BREVO_SENDER_EMAIL: {getattr(settings, 'BREVO_SENDER_EMAIL', '') or 'não configurado'}')
         self.stdout.write(f'Data Excel existe: {settings.DATA_EXCEL_PATH.exists()} -> {settings.DATA_EXCEL_PATH}')
         self.stdout.write(f'Índice do catálogo pronto: {catalogo_index_pronto()}')
         try:

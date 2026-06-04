@@ -1,5 +1,7 @@
 from datetime import datetime, date, timedelta
 import json
+import re
+import urllib.parse
 
 from django.contrib import messages
 from django.db import connection
@@ -358,21 +360,54 @@ def importar_produtos_view(request):
     return redirect('core:produtos')
 
 
+def _whatsapp_link_pagamento(conta_email: str) -> str:
+    numero = re.sub(r'\D+', '', getattr(settings, 'PIX_WHATSAPP', '') or getattr(settings, 'CADASTRO_AUTORIZACAO_WHATSAPP', '') or '')
+    if not numero:
+        return ''
+    if not numero.startswith('55') and len(numero) in (10, 11):
+        numero = '55' + numero
+    msg = (
+        'Olá, fiz o pagamento do Plano ValiControl PRO e quero enviar o comprovante.'
+        f' Conta: {conta_email}.'
+    )
+    return f'https://wa.me/{numero}?text={urllib.parse.quote(msg)}'
+
+
+def _pagamento_manual_context(conta_email: str) -> dict:
+    return {
+        'modo': getattr(settings, 'PAGAMENTO_MODO', 'manual_pix'),
+        'chave': getattr(settings, 'PIX_CHAVE', '') or 'Configure PIX_CHAVE no RunSite',
+        'titular': getattr(settings, 'PIX_TITULAR', '') or 'Configure PIX_TITULAR no RunSite',
+        'valor': getattr(settings, 'PIX_VALOR', 100.00),
+        'descricao': getattr(settings, 'PAGAMENTO_DESCRICAO', 'Plano ValiControl PRO'),
+        'observacao': getattr(settings, 'PIX_OBSERVACAO', 'Após pagar, envie o comprovante pelo WhatsApp para ativação manual do PRO.'),
+        'whatsapp_link': _whatsapp_link_pagamento(conta_email),
+        'conta_email': conta_email,
+    }
+
+
 @require_login
 def pagar_view(request):
     conta = get_conta_por_email(request.session.get('email'))
     pagamento = None
+    pagamento_manual = _pagamento_manual_context(conta.email)
+    modo_pagamento = getattr(settings, 'PAGAMENTO_MODO', 'manual_pix').lower()
 
     if request.method == 'POST':
-        pagamento, erro = criar_pagamento_pix(conta.email)
-        if erro:
-            messages.error(request, erro)
+        if modo_pagamento == 'asaas':
+            pagamento, erro = criar_pagamento_pix(conta.email)
+            if erro:
+                messages.error(request, erro)
+            else:
+                messages.success(request, 'PIX gerado com sucesso pelo Asaas.')
         else:
-            messages.success(request, 'PIX gerado com sucesso.')
+            messages.success(request, 'Dados do PIX manual exibidos. Após pagar, envie o comprovante pelo WhatsApp para ativação do PRO.')
 
     return render(request, 'core/pagar.html', {
         'conta': conta,
         'pagamento': pagamento,
+        'pagamento_manual': pagamento_manual,
+        'modo_pagamento': modo_pagamento,
         'stats': estatisticas(conta),
     })
 
@@ -430,7 +465,7 @@ def webhook_asaas_view(request):
 
 
 def health_view(request):
-    status = {'ok': True, 'database': connection.vendor, 'asaas_configurado': bool(settings.ASAAS_API_KEY)}
+    status = {'ok': True, 'database': connection.vendor, 'modo_pagamento': getattr(settings, 'PAGAMENTO_MODO', 'manual_pix'), 'brevo_configurado': bool(getattr(settings, 'BREVO_API_KEY', ''))}
     try:
         with connection.cursor() as cursor:
             cursor.execute('SELECT 1')
