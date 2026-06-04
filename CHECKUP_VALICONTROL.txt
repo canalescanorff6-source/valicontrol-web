@@ -60,3 +60,9 @@ bash runsite_start.sh
 
 Porta:
 Automática/em branco.
+
+
+7. Correção de sobreposição visual
+- Mensagens/toasts deixam de ficar por cima da tela.
+- Mensagens agora aparecem no fluxo normal da página.
+- Cadastro ficou mais compacto para evitar que botões/campos fiquem escondidos em telas menores.
