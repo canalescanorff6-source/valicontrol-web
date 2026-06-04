@@ -49,10 +49,12 @@
           <span class="nav-ico">⌗</span>
           <span>Etiquetas</span>
         </a>
+        {% if usuario_admin %}
         <a class="nav-link {% if request.resolver_match.url_name == 'admin_contas' %}active{% endif %}" href="{% url 'core:admin_contas' %}">
           <span class="nav-ico">⚙</span>
           <span>Admin</span>
         </a>
+        {% endif %}
         <a class="nav-link {% if request.resolver_match.url_name == 'pagar' %}active{% endif %}" href="{% url 'core:pagar' %}">
           <span class="nav-ico">◎</span>
           <span>Plano PRO</span>
@@ -92,7 +94,7 @@
             <span class="user-badge-avatar">{{ request.session.usuario|first|upper }}</span>
             <span>
               <strong>{{ request.session.usuario|default:'Usuário' }}</strong>
-              <small>Administrador</small>
+              <small>{% if usuario_admin %}Administrador{% else %}Conta ValiControl{% endif %}</small>
             </span>
           </span>
         </div>

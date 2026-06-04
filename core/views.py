@@ -408,13 +408,17 @@ def _whatsapp_link_pagamento(conta_email: str) -> str:
 
 
 def _pagamento_manual_context(conta_email: str) -> dict:
+    chave = (getattr(settings, 'PIX_CHAVE', '') or '').strip()
+    titular = (getattr(settings, 'PIX_TITULAR', '') or '').strip()
+    pix_configurado = bool(chave and titular)
     return {
         'modo': getattr(settings, 'PAGAMENTO_MODO', 'manual_pix'),
-        'chave': getattr(settings, 'PIX_CHAVE', '') or 'Configure PIX_CHAVE no RunSite',
-        'titular': getattr(settings, 'PIX_TITULAR', '') or 'Configure PIX_TITULAR no RunSite',
+        'chave': chave,
+        'titular': titular,
+        'pix_configurado': pix_configurado,
         'valor': getattr(settings, 'PIX_VALOR', 100.00),
         'descricao': getattr(settings, 'PAGAMENTO_DESCRICAO', 'Plano ValiControl PRO'),
-        'observacao': getattr(settings, 'PIX_OBSERVACAO', 'Após pagar, envie o comprovante pelo WhatsApp para ativação manual do PRO.'),
+        'observacao': getattr(settings, 'PIX_OBSERVACAO', 'Após o pagamento, envie o comprovante pelo WhatsApp para a equipe liberar o PRO.'),
         'whatsapp_link': _whatsapp_link_pagamento(conta_email),
         'conta_email': conta_email,
     }
@@ -435,7 +439,7 @@ def pagar_view(request):
             else:
                 messages.success(request, 'PIX gerado com sucesso pelo Asaas.')
         else:
-            messages.success(request, 'Dados do PIX manual exibidos. Após pagar, envie o comprovante pelo WhatsApp para ativação do PRO.')
+            messages.success(request, 'Após pagar, envie o comprovante pelo WhatsApp para a equipe liberar o PRO.')
 
     return render(request, 'core/pagar.html', {
         'conta': conta,

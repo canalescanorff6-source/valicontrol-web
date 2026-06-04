@@ -1,12 +1,12 @@
 {% extends 'core/base.html' %}
 {% block title %}Upgrade PRO | ValiControl{% endblock %}
-{% block topbar_title %}Plano PRO e PIX manual{% endblock %}
+{% block topbar_title %}Plano PRO e pagamento Pix{% endblock %}
 {% block content %}
 <header class="page-header page-header-enhanced">
   <div>
     <p class="eyebrow">PLANO PRO</p>
     <h1>Upgrade PRO</h1>
-    <p class="muted">Ative o ValiControl PRO com PIX manual, sem depender de Asaas, Mercado Pago ou integração complicada.</p>
+    <p class="muted">Ative o ValiControl PRO com pagamento via Pix e envie o comprovante pelo WhatsApp para liberação da conta.</p>
   </div>
 </header>
 
@@ -27,33 +27,33 @@
     <small>{{ pagamento_manual.descricao }}</small>
   </article>
   <article class="metric-card glass-panel metric-neutral">
-    <span class="metric-label">Ativação</span>
-    <strong>Manual</strong>
-    <small>Após envio do comprovante</small>
+    <span class="metric-label">Liberação</span>
+    <strong>Após análise</strong>
+    <small>Envie o comprovante para confirmar</small>
   </article>
 </section>
 
 <section class="glass-panel card-section pay-grid modern-pay-grid">
   <div>
     <h2>Plano ValiControl PRO</h2>
-    <p class="muted">Use a chave Pix abaixo, envie o comprovante pelo WhatsApp e ative a conta manualmente após a conferência.</p>
+    <p class="muted">O pagamento é feito por Pix. Após enviar o comprovante, a equipe confere e libera o PRO para sua conta.</p>
     <ul class="check-list">
-      <li>Sem API de pagamento obrigatória</li>
-      <li>Sem chave Asaas ou Mercado Pago</li>
-      <li>Recebimento direto na sua chave Pix</li>
-      <li>Comprovante enviado pelo WhatsApp</li>
-      <li>Ativação manual com comando simples no RunSite</li>
+      <li>Cadastros liberados para controlar seus produtos</li>
+      <li>Acesso pelo navegador em computador ou celular</li>
+      <li>Dashboard de vencimentos, relatórios e etiquetas</li>
+      <li>Importação e exportação de planilhas</li>
+      <li>Liberação do PRO após confirmação do comprovante</li>
     </ul>
 
     <div class="authorization-box payment-command-box">
-      <span class="authorization-kicker">Comando para ativar após conferir o pagamento</span>
-      <strong>python manage.py ativar_pro {{ conta.email }} --dias 30</strong>
-      <small>Rode esse comando no terminal do RunSite depois de confirmar o comprovante.</small>
+      <span class="authorization-kicker">Como liberar o PRO</span>
+      <strong>1. Pague pelo Pix · 2. Envie o comprovante · 3. Aguarde a confirmação</strong>
+      <small>O prazo de liberação depende da conferência do comprovante pela equipe responsável.</small>
     </div>
   </div>
 
   <div class="qr-box payment-box manual-pix-box">
-    <p class="eyebrow">PIX MANUAL</p>
+    <p class="eyebrow">PAGAMENTO VIA PIX</p>
     <div class="pix-data-grid">
       <div>
         <span>Valor</span>
@@ -61,15 +61,19 @@
       </div>
       <div>
         <span>Titular</span>
-        <strong>{{ pagamento_manual.titular }}</strong>
+        <strong>{% if pagamento_manual.titular %}{{ pagamento_manual.titular }}{% else %}Solicite pelo WhatsApp{% endif %}</strong>
       </div>
     </div>
 
-    <label class="copy-field">
-      <span>Chave Pix</span>
-      <textarea readonly id="pixChaveManual">{{ pagamento_manual.chave }}</textarea>
-    </label>
-    <button class="btn btn-ghost w-full" type="button" data-copy="#pixChaveManual">Copiar chave Pix</button>
+    {% if pagamento_manual.pix_configurado %}
+      <label class="copy-field">
+        <span>Chave Pix</span>
+        <textarea readonly id="pixChaveManual">{{ pagamento_manual.chave }}</textarea>
+      </label>
+      <button class="btn btn-ghost w-full" type="button" data-copy="#pixChaveManual">Copiar chave Pix</button>
+    {% else %}
+      <div class="empty payment-empty">Os dados do Pix ainda não estão disponíveis nesta tela. Use o WhatsApp para solicitar a chave de pagamento.</div>
+    {% endif %}
 
     {% if pagamento_manual.whatsapp_link %}
       <a class="btn btn-whatsapp w-full" href="{{ pagamento_manual.whatsapp_link }}" target="_blank" rel="noopener">Enviar comprovante pelo WhatsApp</a>
@@ -77,28 +81,10 @@
 
     <form method="post" class="form stack payment-confirm-note">
       {% csrf_token %}
-      <button class="btn btn-primary w-full" type="submit">Já paguei, mostrar instruções</button>
+      <button class="btn btn-primary w-full" type="submit">Já paguei e vou enviar o comprovante</button>
     </form>
 
     <small class="muted">{{ pagamento_manual.observacao }}</small>
   </div>
 </section>
-
-{% if modo_pagamento == 'asaas' %}
-<section class="glass-panel card-section">
-  <div class="section-title">
-    <div>
-      <h2>Modo Asaas opcional</h2>
-      <p class="muted">Este bloco só aparece quando PAGAMENTO_MODO=asaas.</p>
-    </div>
-  </div>
-  {% if pagamento %}
-    {% if pagamento.qr_base64 %}<img src="data:image/png;base64,{{ pagamento.qr_base64 }}" alt="QR Code PIX">{% endif %}
-    <textarea readonly id="pixCopiaCola">{{ pagamento.qr }}</textarea>
-    <button class="btn btn-ghost" type="button" data-copy="#pixCopiaCola">Copiar PIX</button>
-  {% else %}
-    <form method="post">{% csrf_token %}<button class="btn btn-primary" type="submit">Gerar PIX via Asaas</button></form>
-  {% endif %}
-</section>
-{% endif %}
 {% endblock %}
