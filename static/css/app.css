@@ -1151,3 +1151,258 @@ input[readonly].email-locked {
   .auth-steps b { width: 32px; height: 32px; }
   .auth-steps div { grid-template-columns: 32px 1fr; }
 }
+
+/* ==========================================================
+   FIX FINAL DE RESPONSIVIDADE / SEM SOBREPOSIÇÃO
+   Criado para telas de notebook/desktop com sidebar do navegador.
+   O dashboard e produtos deixam de usar colunas apertadas e passam
+   a empilhar os painéis quando o espaço útil fica menor.
+   ========================================================== */
+html, body {
+  overflow-x: hidden;
+}
+
+.app-shell {
+  width: min(100%, 1440px);
+  max-width: calc(100vw - 18px);
+  grid-template-columns: 240px minmax(0, 1fr);
+  align-items: start;
+}
+
+.sidebar {
+  min-width: 0;
+}
+
+.workspace,
+.content,
+.dashboard-main-col,
+.dashboard-side-col,
+.products-layout,
+.card-section,
+.glass-panel {
+  min-width: 0;
+}
+
+.topbar {
+  min-width: 0;
+}
+
+.page-header-enhanced {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.page-header-enhanced > div:first-child {
+  min-width: 0;
+}
+
+.header-actions {
+  min-width: 160px;
+}
+
+.metrics-grid-dashboard,
+.metrics-grid-products,
+.stats-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.metric-card,
+.stat-card {
+  min-width: 0;
+  min-height: 124px;
+  padding: 1rem;
+}
+
+.metric-card strong,
+.stat-card strong {
+  font-size: clamp(1.85rem, 3vw, 2.6rem);
+}
+
+.dashboard-grid {
+  grid-template-columns: 1fr;
+}
+
+.dashboard-side-col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
+.dashboard-side-col .side-card {
+  width: 100%;
+  margin: 0;
+  position: static;
+}
+
+.operational-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.operational-box {
+  min-width: 0;
+}
+
+.products-layout {
+  grid-template-columns: 1fr;
+}
+
+.product-form,
+.product-form-modern,
+.edit-form,
+.edit-form-modern {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+}
+
+.product-form .wide,
+.product-form-modern .wide,
+.edit-form .wide,
+.edit-form-modern .wide {
+  grid-column: span 2;
+}
+
+.product-form button[type="submit"],
+.product-form-modern button[type="submit"] {
+  width: 100%;
+  min-height: 50px;
+}
+
+.import-form-vertical {
+  grid-template-columns: 1fr;
+}
+
+.table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.table-products,
+.table-dashboard {
+  min-width: 760px;
+}
+
+@media (max-width: 1500px) {
+  .app-shell {
+    width: calc(100vw - 18px);
+    max-width: calc(100vw - 18px);
+    grid-template-columns: 230px minmax(0, 1fr);
+    gap: .85rem;
+    padding: .85rem;
+  }
+
+  .sidebar {
+    padding: .85rem;
+  }
+
+  .brand strong {
+    font-size: 1.05rem;
+  }
+
+  .brand small,
+  .sidebar-pro-card small,
+  .sidebar-user small {
+    font-size: .7rem;
+  }
+
+  .content {
+    padding-right: .1rem;
+  }
+
+  .dashboard-grid,
+  .products-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-side-col {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1250px) {
+  .metrics-grid-dashboard,
+  .metrics-grid-products,
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .operational-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-side-col {
+    grid-template-columns: 1fr;
+  }
+
+  .page-header-enhanced {
+    grid-template-columns: 1fr;
+  }
+
+  .header-actions {
+    justify-content: flex-start;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 1050px) {
+  .app-shell {
+    width: calc(100vw - 12px);
+    max-width: calc(100vw - 12px);
+    grid-template-columns: 1fr;
+    padding: .6rem;
+  }
+
+  .sidebar {
+    position: relative;
+    top: 0;
+    height: auto;
+  }
+
+  .nav-vertical {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .sidebar-pro-card {
+    display: none;
+  }
+
+  .product-form,
+  .product-form-modern,
+  .edit-form,
+  .edit-form-modern {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .metrics-grid-dashboard,
+  .metrics-grid-products,
+  .stats-grid,
+  .dashboard-side-col,
+  .operational-grid,
+  .filters,
+  .product-form,
+  .product-form-modern,
+  .edit-form,
+  .edit-form-modern,
+  .nav-vertical {
+    grid-template-columns: 1fr;
+  }
+
+  .product-form .wide,
+  .product-form-modern .wide,
+  .edit-form .wide,
+  .edit-form-modern .wide {
+    grid-column: span 1;
+  }
+
+  .header-actions .btn {
+    width: 100%;
+  }
+
+  .table-products,
+  .table-dashboard {
+    min-width: 680px;
+  }
+}
